@@ -1,47 +1,109 @@
-<navigation-bar title="云托管计数" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+<navigation-bar title="留痕" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
 
-<view class="page-shell">
-  <view class="eyebrow">WECHAT CLOUD RUN</view>
+<view class="page-canvas home-page">
   <view class="hero">
-    <text class="title">一次点击，写入云端</text>
-    <text class="subtitle">请求经微信专线发送到 flask-tddl 服务，并由云托管 MySQL 持久化。</text>
+    <view class="hero-copy">
+      <text class="eyebrow">{{issueLabel}}</text>
+      <view class="hero-title display-serif">
+        <text>把喜欢的，</text>
+        <text>留在时间里。</text>
+      </view>
+      <text class="hero-date">{{dateLabel}}</text>
+    </view>
+    <view class="issue-stamp">
+      <text class="stamp-small">ISSUE</text>
+      <text class="stamp-number">07</text>
+    </view>
   </view>
 
-  <view class="counter-card">
-    <view class="card-header">
-      <text class="card-label">当前计数</text>
-      <view class="status-dot status-dot--{{statusClass}}"></view>
+  <view class="quick-entry" bindtap="openAdd" hover-class="quick-entry--pressed">
+    <view class="quick-entry__mark">＋</view>
+    <view class="quick-entry__copy">
+      <text class="quick-entry__title">记录一个作品</text>
+      <text class="quick-entry__hint">只写名字也可以，时间默认现在</text>
     </view>
+    <text class="quick-entry__arrow">→</text>
+  </view>
 
-    <text class="count-value">{{hasCount ? count : '--'}}</text>
-    <text class="status-text">{{statusText}}</text>
+  <scroll-view class="category-strip" scroll-x="true" show-scrollbar="{{false}}">
+    <view class="category-strip__inner">
+      <view class="category-chip" wx:for="{{categorySummary}}" wx:key="key">
+        <text class="category-chip__mark {{item.accentClass}}">{{item.mark}}</text>
+        <text class="category-chip__label">{{item.label}}</text>
+        <text class="category-chip__count">{{item.count}}</text>
+      </view>
+    </view>
+  </scroll-view>
 
-    <button
-      class="count-button"
-      bindtap="incrementCount"
-      loading="{{loading}}"
-      disabled="{{loading}}"
+  <view class="section-bar">
+    <view>
+      <text class="section-heading">接着看</text>
+      <text class="section-caption">上次停下来的地方</text>
+    </view>
+    <text class="section-action" bindtap="openAll">全部 {{continueRecords.length}}</text>
+  </view>
+
+  <view wx:if="{{continueRecords.length}}" class="continue-list">
+    <view
+      class="continue-card"
+      wx:for="{{continueRecords}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="openRecord"
     >
-      {{loading ? '请求中' : '计数 +1'}}
-    </button>
-
-    <view wx:if="{{errorMessage}}" class="error-box">
-      <text>{{errorMessage}}</text>
+      <view class="continue-card__mark {{item.accentClass}}">{{item.categoryMark}}</view>
+      <view class="continue-card__body">
+        <view class="continue-card__meta">
+          <text>{{item.categoryLabel}} · {{item.statusLabel}}</text>
+          <text>{{item.timeLabel}}</text>
+        </view>
+        <text class="continue-card__title">{{item.title}}</text>
+        <view class="progress-row">
+          <view wx:if="{{item.totalProgress > 0}}" class="progress-track">
+            <view class="progress-fill" style="width: {{item.progressPercent}}%"></view>
+          </view>
+          <text class="progress-copy">{{item.progressText}}</text>
+        </view>
+      </view>
+      <button
+        class="progress-button"
+        data-id="{{item.id}}"
+        catchtap="increaseProgress"
+        aria-label="进度加一"
+      >+1</button>
     </view>
   </view>
 
-  <view class="service-info">
-    <view class="info-row">
-      <text class="info-label">环境</text>
-      <text class="info-value">prod-d8gf33lii77ef34ef</text>
+  <view wx:else class="empty-inline">
+    <text class="empty-inline__title">还没有进行中的作品</text>
+    <text class="empty-inline__copy">记录一本书或一部剧，让它出现在这里。</text>
+  </view>
+
+  <view class="section-bar section-bar--recent">
+    <view>
+      <text class="section-heading">最近留痕</text>
+      <text class="section-caption">按记录时间排列</text>
     </view>
-    <view class="info-row">
-      <text class="info-label">服务</text>
-      <text class="info-value">flask-tddl</text>
-    </view>
-    <view class="info-row">
-      <text class="info-label">接口</text>
-      <text class="info-value">POST /api/count</text>
+    <text class="section-action" bindtap="openAll">查看全部</text>
+  </view>
+
+  <view class="timeline-list">
+    <view
+      class="timeline-row"
+      wx:for="{{recentRecords}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="openRecord"
+    >
+      <text class="timeline-row__index">{{item.editionIndex}}</text>
+      <view class="timeline-row__rule"></view>
+      <view class="timeline-row__body">
+        <text class="timeline-row__title">{{item.title}}</text>
+        <text class="timeline-row__meta">{{item.categoryLabel}} · {{item.statusLabel}} · {{item.timeLabel}}</text>
+      </view>
+      <text class="timeline-row__arrow">↗</text>
     </view>
   </view>
 </view>
+
+<bottom-nav active="home"></bottom-nav>

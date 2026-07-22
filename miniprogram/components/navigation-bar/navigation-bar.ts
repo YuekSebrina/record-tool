@@ -94,12 +94,17 @@ Component({
     },
     back() {
       const data = this.data
-      if (data.delta) {
+      if (data.delta && getCurrentPages().length > 1) {
         wx.navigateBack({
           delta: data.delta
         })
+      } else {
+        wx.reLaunch({ url: '/pages/index/index' })
       }
       this.triggerEvent('back', { delta: data.delta }, {})
+    },
+    home() {
+      wx.reLaunch({ url: '/pages/index/index' })
     }
   },
 })

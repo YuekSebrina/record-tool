@@ -1,0 +1,96 @@
+<navigation-bar title="全部记录" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+
+<view class="page-canvas records-page">
+  <view class="records-heading">
+    <view>
+      <text class="eyebrow">THE COMPLETE INDEX</text>
+      <text class="records-title display-serif">我的收藏册</text>
+    </view>
+    <view class="records-count">
+      <text class="records-count__number">{{totalCount}}</text>
+      <text class="records-count__label">ENTRIES</text>
+    </view>
+  </view>
+
+  <view class="search-box">
+    <text class="search-box__mark">⌕</text>
+    <input
+      class="search-box__input"
+      value="{{keyword}}"
+      placeholder="搜索自己的记录"
+      placeholder-class="search-box__placeholder"
+      bindinput="handleSearch"
+    />
+    <text wx:if="{{keyword}}" class="search-box__clear" bindtap="clearFilters">清除</text>
+  </view>
+
+  <scroll-view class="filter-scroll" scroll-x="true" show-scrollbar="{{false}}">
+    <view class="filter-row">
+      <view
+        class="filter-chip {{selectedCategory === item.key ? 'filter-chip--selected' : ''}}"
+        wx:for="{{categoryFilters}}"
+        wx:key="key"
+        data-category="{{item.key}}"
+        bindtap="selectCategory"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <scroll-view class="filter-scroll filter-scroll--status" scroll-x="true" show-scrollbar="{{false}}">
+    <view class="filter-row">
+      <view
+        class="status-chip {{selectedStatus === item.key ? 'status-chip--selected' : ''}}"
+        wx:for="{{statusFilters}}"
+        wx:key="key"
+        data-status="{{item.key}}"
+        bindtap="selectStatus"
+      >{{item.label}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="index-label">
+    <text>按最近记录排列</text>
+    <text>{{records.length}} 条结果</text>
+  </view>
+
+  <view wx:if="{{records.length}}" class="record-index">
+    <view
+      class="record-row"
+      wx:for="{{records}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="openRecord"
+    >
+      <view class="record-row__cover {{item.accentClass}}">
+        <text class="record-row__edition">NO.{{item.editionIndex}}</text>
+        <text class="record-row__mark">{{item.categoryMark}}</text>
+      </view>
+      <view class="record-row__body">
+        <view class="record-row__topline">
+          <text>{{item.categoryLabel}}</text>
+          <text class="record-row__status">{{item.statusLabel}}</text>
+        </view>
+        <text class="record-row__title">{{item.title}}</text>
+        <text class="record-row__progress">{{item.progressText}}</text>
+        <view class="record-row__footer">
+          <text>{{item.timeLabel}}</text>
+          <text>查看记录 →</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty-state">
+    <text class="empty-state__mark">∅</text>
+    <text class="empty-state__title display-serif">没有找到这条留痕</text>
+    <text class="empty-state__copy">换一个名称或清除筛选，也可以直接新建一条记录。</text>
+    <view class="empty-state__actions">
+      <button bindtap="clearFilters">清除筛选</button>
+      <button bindtap="openAdd">新建记录</button>
+    </view>
+  </view>
+
+  <button class="floating-add" bindtap="openAdd" aria-label="新增记录">＋</button>
+</view>
+
+<bottom-nav active="records"></bottom-nav>

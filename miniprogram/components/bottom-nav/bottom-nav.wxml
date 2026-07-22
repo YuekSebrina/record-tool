@@ -1,0 +1,29 @@
+<view class="bottom-nav">
+  <view
+    class="nav-item {{active === 'home' ? 'nav-item--active' : ''}}"
+    data-key="home"
+    data-url="/pages/index/index"
+    bindtap="switchPage"
+  >
+    <text class="nav-mark">记</text>
+    <text class="nav-label">记录</text>
+  </view>
+  <view
+    class="nav-item {{active === 'records' ? 'nav-item--active' : ''}}"
+    data-key="records"
+    data-url="/pages/records/records"
+    bindtap="switchPage"
+  >
+    <text class="nav-mark">册</text>
+    <text class="nav-label">全部</text>
+  </view>
+  <view
+    class="nav-item {{active === 'profile' ? 'nav-item--active' : ''}}"
+    data-key="profile"
+    data-url="/pages/profile/profile"
+    bindtap="switchPage"
+  >
+    <text class="nav-mark">我</text>
+    <text class="nav-label">我的</text>
+  </view>
+</view>

@@ -1,0 +1,114 @@
+<navigation-bar title="{{isEditing ? '编辑记录' : '快速记录'}}" color="#17211b" background="#f3efe4"></navigation-bar>
+
+<view class="page-canvas page-canvas--detail add-page">
+  <view class="add-intro">
+    <text class="eyebrow">ONE SIMPLE ENTRY</text>
+    <view class="add-title display-serif">
+      <text>这一刻，</text>
+      <text>想记下什么？</text>
+    </view>
+    <text class="add-copy">名称是唯一必须填写的内容，时间已经替你设为现在。</text>
+  </view>
+
+  <view class="form-section form-section--title">
+    <text class="field-number">01</text>
+    <view class="field-body">
+      <text class="field-label">作品名称</text>
+      <input
+        class="title-input"
+        value="{{title}}"
+        placeholder="输入书名、片名或剧名"
+        placeholder-class="title-input__placeholder"
+        maxlength="60"
+        focus="{{!isEditing}}"
+        bindinput="handleTitleInput"
+        confirm-type="done"
+      />
+    </view>
+  </view>
+
+  <view class="form-section">
+    <text class="field-number">02</text>
+    <view class="field-body">
+      <text class="field-label">放进哪个分区</text>
+      <view class="category-grid">
+        <view
+          class="category-option {{selectedCategory === item.key ? 'category-option--selected' : ''}}"
+          wx:for="{{categories}}"
+          wx:key="key"
+          data-category="{{item.key}}"
+          bindtap="selectCategory"
+        >
+          <text class="category-option__mark {{item.accentClass}}">{{item.mark}}</text>
+          <view class="category-option__copy">
+            <text class="category-option__label">{{item.label}}</text>
+            <text class="category-option__helper">{{item.helper}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <text class="field-number">03</text>
+    <view class="field-body">
+      <text class="field-label">现在的状态</text>
+      <view class="status-options">
+        <view
+          class="status-option {{selectedStatus === item.key ? 'status-option--selected' : ''}}"
+          wx:for="{{statusOptions}}"
+          wx:key="key"
+          data-status="{{item.key}}"
+          bindtap="selectStatus"
+        >
+          <view class="status-option__radio"></view>
+          <view>
+            <text class="status-option__label">{{item.label}}</text>
+            <text class="status-option__helper">{{item.helper}}</text>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{showProgressFields}}" class="progress-fields">
+        <view class="progress-field">
+          <text>当前看到</text>
+          <input type="number" value="{{currentProgress}}" bindinput="handleCurrentProgress" />
+          <text>集</text>
+        </view>
+        <view class="progress-field">
+          <text>总集数</text>
+          <input type="number" value="{{totalProgress}}" bindinput="handleTotalProgress" />
+          <text>集</text>
+        </view>
+        <text class="progress-fields__hint">选填。不知道总集数时可以只填当前集数。</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section form-section--last">
+    <text class="field-number">04</text>
+    <view class="field-body">
+      <text class="field-label">记录时间</text>
+      <view class="date-row">
+        <picker class="date-picker" mode="date" value="{{date}}" bindchange="selectDate">
+          <text class="date-picker__value">{{date}}</text>
+          <text class="date-picker__label">日期</text>
+        </picker>
+        <picker class="date-picker" mode="time" value="{{time}}" bindchange="selectTime">
+          <text class="date-picker__value">{{time}}</text>
+          <text class="date-picker__label">时间</text>
+        </picker>
+      </view>
+      <text class="time-hint">不修改即可按当前时间保存。</text>
+    </view>
+  </view>
+
+  <view class="form-note">
+    <text>NOTE</text>
+    <text>评分、标签和长评不会打断第一次保存。剧集进度可在首页一键更新。</text>
+  </view>
+
+  <button class="save-button" disabled="{{!title}}" bindtap="saveRecord">
+    <text>{{isEditing ? '保存修改' : '保存这条记录'}}</text>
+    <text>→</text>
+  </button>
+</view>

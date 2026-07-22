@@ -1,0 +1,298 @@
+page {
+  background:
+    linear-gradient(90deg, transparent 35rpx, rgba(217, 105, 65, 0.12) 36rpx, transparent 37rpx),
+    #f3efe4;
+}
+
+.add-page {
+  padding-top: 34rpx;
+}
+
+.add-intro {
+  display: flex;
+  flex-direction: column;
+  padding: 12rpx 10rpx 52rpx;
+  border-bottom: 2rpx solid #17211b;
+}
+
+.add-title {
+  margin-top: 18rpx;
+  font-size: 58rpx;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -3rpx;
+}
+
+.add-title text {
+  display: block;
+}
+
+.add-copy {
+  max-width: 570rpx;
+  margin-top: 22rpx;
+  color: #68736a;
+  font-size: 23rpx;
+  line-height: 1.7;
+}
+
+.form-section {
+  display: flex;
+  gap: 22rpx;
+  padding: 38rpx 10rpx;
+  border-bottom: 2rpx solid rgba(23, 33, 27, 0.15);
+}
+
+.form-section--title {
+  padding-top: 44rpx;
+}
+
+.form-section--last {
+  border-bottom-color: #17211b;
+}
+
+.field-number {
+  flex: none;
+  padding-top: 4rpx;
+  color: #d96941;
+  font-family: Georgia, serif;
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.field-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.field-label {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.title-input {
+  height: 86rpx;
+  margin-top: 18rpx;
+  padding: 0;
+  border-bottom: 3rpx solid #17211b;
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.title-input__placeholder {
+  color: #a2a79f;
+  font-weight: 400;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  min-height: 104rpx;
+  padding: 14rpx;
+  border: 2rpx solid rgba(23, 33, 27, 0.14);
+  border-radius: 6rpx;
+  background: rgba(255, 253, 247, 0.48);
+}
+
+.category-option--selected {
+  border-color: #17211b;
+  background: #fffdf7;
+  box-shadow: 5rpx 5rpx 0 #17211b;
+}
+
+.category-option__mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 54rpx;
+  height: 68rpx;
+  font-family: Georgia, 'Songti SC', serif;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.category-option__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.category-option__label {
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.category-option__helper {
+  overflow: hidden;
+  margin-top: 5rpx;
+  color: #7b847c;
+  font-size: 17rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-options {
+  margin-top: 19rpx;
+  border-top: 2rpx solid rgba(23, 33, 27, 0.14);
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 17rpx;
+  min-height: 88rpx;
+  padding: 16rpx 5rpx;
+  border-bottom: 2rpx solid rgba(23, 33, 27, 0.11);
+}
+
+.status-option__radio {
+  width: 24rpx;
+  height: 24rpx;
+  border: 2rpx solid #8b938c;
+  border-radius: 50%;
+}
+
+.status-option--selected .status-option__radio {
+  border: 7rpx solid #d96941;
+}
+
+.status-option > view:last-child {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.status-option__label {
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.status-option__helper {
+  color: #7b847c;
+  font-size: 18rpx;
+}
+
+.progress-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-top: 22rpx;
+  padding-top: 22rpx;
+  border-top: 2rpx dashed rgba(23, 33, 27, 0.2);
+}
+
+.progress-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9rpx;
+  align-items: center;
+  min-height: 66rpx;
+  padding: 0 13rpx;
+  border: 2rpx solid rgba(23, 33, 27, 0.16);
+  background: rgba(255, 253, 247, 0.62);
+  font-size: 18rpx;
+}
+
+.progress-field input {
+  min-width: 0;
+  height: 54rpx;
+  text-align: center;
+  border-bottom: 2rpx solid #17211b;
+  font-family: Georgia, serif;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.progress-fields__hint {
+  grid-column: 1 / -1;
+  color: #7b847c;
+  font-size: 18rpx;
+}
+
+.date-row {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.date-picker {
+  padding: 20rpx;
+  border: 2rpx solid rgba(23, 33, 27, 0.16);
+  background: rgba(255, 253, 247, 0.62);
+}
+
+.date-picker__value,
+.date-picker__label {
+  display: block;
+}
+
+.date-picker__value {
+  font-family: Georgia, serif;
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.date-picker__label {
+  margin-top: 6rpx;
+  color: #7b847c;
+  font-size: 17rpx;
+}
+
+.time-hint {
+  display: block;
+  margin-top: 13rpx;
+  color: #7b847c;
+  font-size: 19rpx;
+}
+
+.form-note {
+  display: grid;
+  grid-template-columns: 90rpx 1fr;
+  gap: 20rpx;
+  margin-top: 28rpx;
+  padding: 20rpx;
+  color: #68736a;
+  border-left: 6rpx solid #d96941;
+  background: rgba(217, 105, 65, 0.08);
+  font-size: 19rpx;
+  line-height: 1.55;
+}
+
+.form-note text:first-child {
+  color: #d96941;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.save-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 96rpx;
+  margin-top: 36rpx;
+  padding: 0 30rpx;
+  color: #fffdf7;
+  border-radius: 5rpx;
+  background: #17211b;
+  font-size: 27rpx;
+  font-weight: 800;
+}
+
+.save-button[disabled] {
+  color: rgba(255, 253, 247, 0.58);
+  background: #7b847c;
+}
