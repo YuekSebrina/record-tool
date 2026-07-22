@@ -1,123 +1,35 @@
-<navigation-bar title="我的" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+<navigation-bar title="拾羽" back="{{false}}" color="#202420" background="#f3efe4"></navigation-bar>
 
 <view class="page-canvas profile-page">
   <view class="profile-card">
-    <view class="profile-card__issue">
-      <text>MEMBER</text>
-      <text>NO.0001</text>
+    <view class="avatar-placeholder">我</view>
+    <view class="profile-copy">
+      <text class="profile-name">未设置昵称</text>
+      <text class="profile-caption">所有记录默认仅自己可见</text>
     </view>
-    <view class="profile-main">
-      <view class="avatar-placeholder">晚</view>
-      <view class="profile-copy">
-        <text class="profile-name display-serif">晚风收藏家</text>
-        <text class="profile-caption">把看过与读过的时光收进这里</text>
-        <view class="profile-status">
-          <view></view>
-          <text>本地原型资料</text>
-        </view>
-      </view>
-    </view>
-    <button class="profile-button" bindtap="previewProfileSetup">
-      <text>设置微信头像与昵称</text>
-      <text>→</text>
-    </button>
+    <text class="profile-action" bindtap="previewProfileSetup">设置</text>
   </view>
 
-  <view class="statistics-grid">
+  <view class="statistics-card">
     <view class="statistic-item" wx:for="{{statistics}}" wx:key="label">
-      <text class="statistic-item__value">{{item.value}}</text>
-      <text class="statistic-item__label">{{item.label}}</text>
+      <text>{{item.value}}</text>
+      <text>{{item.label}}</text>
     </view>
   </view>
 
-  <view class="profile-section">
-    <view class="profile-section__heading">
-      <view>
-        <text class="section-heading">我的分区</text>
-        <text class="section-caption">收藏分布</text>
-      </view>
-      <text class="profile-section__period">{{periodLabel}}</text>
+  <view class="todo-summary">
+    <view>
+      <text>待办完成情况</text>
+      <text>{{completedTodoCount}} / {{totalTodoCount}}</text>
     </view>
-    <view class="category-statistics">
-      <view class="category-stat" wx:for="{{categoryStatistics}}" wx:key="label">
-        <view class="category-stat__mark {{item.accentClass}}">{{item.mark}}</view>
-        <text class="category-stat__label">{{item.label}}</text>
-        <text class="category-stat__value">{{item.value}}</text>
-      </view>
+    <view class="summary-track">
+      <view style="width: {{totalTodoCount ? completedTodoCount / totalTodoCount * 100 : 0}}%"></view>
     </view>
   </view>
 
-  <view class="profile-section profile-section--rhythm">
-    <view class="profile-section__heading">
-      <view>
-        <text class="section-heading">本月节奏</text>
-        <text class="section-caption">本月留下 {{monthRecordCount}} 条记录</text>
-      </view>
-      <text class="profile-section__period">{{monthRecordCount}} ENTRIES</text>
-    </view>
-    <view class="rhythm-card">
-      <view class="rhythm-days">
-        <view class="rhythm-day">
-          <view class="rhythm-block rhythm-block--soft"></view>
-          <text>一</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block rhythm-block--strong"></view>
-          <text>二</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block"></view>
-          <text>三</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block rhythm-block--soft"></view>
-          <text>四</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block rhythm-block--strong"></view>
-          <text>五</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block rhythm-block--soft"></view>
-          <text>六</text>
-        </view>
-        <view class="rhythm-day">
-          <view class="rhythm-block"></view>
-          <text>日</text>
-        </view>
-      </view>
-      <view class="rhythm-note">
-        <text class="rhythm-note__number">03</text>
-        <text>连续记录天数</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="settings-list">
-    <view class="setting-row" bindtap="openPreference">
-      <text class="setting-row__index">01</text>
-      <view>
-        <text class="setting-row__title">记录偏好</text>
-        <text class="setting-row__copy">默认分区、状态与时间格式</text>
-      </view>
-      <text class="setting-row__arrow">→</text>
-    </view>
-    <view class="setting-row" bindtap="openPrivacy">
-      <text class="setting-row__index">02</text>
-      <view>
-        <text class="setting-row__title">数据与隐私</text>
-        <text class="setting-row__copy">隐私说明、注销与数据删除</text>
-      </view>
-      <text class="setting-row__arrow">→</text>
-    </view>
-    <view class="setting-row" bindtap="openAbout">
-      <text class="setting-row__index">03</text>
-      <view>
-        <text class="setting-row__title">关于留痕</text>
-        <text class="setting-row__copy">版本信息与产品说明</text>
-      </view>
-      <text class="setting-row__arrow">→</text>
-    </view>
+  <view class="privacy-note">
+    <text>隐私说明</text>
+    <text>当前记录只保存在本机原型中。接入微信登录后，云端数据仍默认仅本人可见。</text>
   </view>
 </view>
 

@@ -1,88 +1,136 @@
 import {
-  categoryMetas,
-  CategoryKey,
-  getPrototypeRecords,
-  PrototypeRecord,
-  StatusKey,
+  EntryStatus,
+  EntryType,
+  getPrototypeEntries,
+  PrototypeEntry,
+  savePrototypeEntry,
 } from '../../utils/prototype-data'
 
-type CategoryFilter = CategoryKey | 'all'
-type StatusFilter = StatusKey | 'all'
+type TypeFilter = EntryType | 'all'
+type StatusFilter = EntryStatus | 'all'
 
 Page({
   data: {
     keyword: '',
-    selectedCategory: 'all' as CategoryFilter,
+    selectedType: 'all' as TypeFilter,
     selectedStatus: 'all' as StatusFilter,
-    categoryFilters: [
+    typeFilters: [
       { key: 'all', label: '全部' },
-      ...categoryMetas.map((category) => ({
-        key: category.key,
-        label: category.label,
-      })),
+      { key: 'note', label: '随记' },
+      { key: 'todo', label: '待办' },
+      { key: 'media', label: '书影音' },
     ],
     statusFilters: [
       { key: 'all', label: '全部状态' },
-      { key: 'planned', label: '想看 / 想读' },
-      { key: 'in-progress', label: '进行中' },
+      { key: 'active', label: '进行中' },
+      { key: 'planned', label: '计划中' },
       { key: 'completed', label: '已完成' },
     ],
-    records: [] as PrototypeRecord[],
+    entries: [] as PrototypeEntry[],
     totalCount: 0,
+    previewVisible: false,
+    selectedEntry: null as PrototypeEntry | null,
   },
 
   onShow() {
-    this.filterRecords()
+    this.filterEntries()
   },
 
   handleSearch(event: WechatMiniprogram.Input) {
     this.setData({ keyword: event.detail.value })
-    this.filterRecords(event.detail.value)
+    this.filterEntries(event.detail.value)
   },
 
-  selectCategory(event: WechatMiniprogram.BaseEvent) {
-    const { category } = event.currentTarget.dataset as { category: CategoryFilter }
-    this.setData({ selectedCategory: category })
-    this.filterRecords(undefined, category)
+  selectType(event: WechatMiniprogram.BaseEvent) {
+    const { type } = event.currentTarget.dataset as { type: TypeFilter }
+    this.setData({ selectedType: type })
+    this.filterEntries(undefined, type)
   },
 
   selectStatus(event: WechatMiniprogram.BaseEvent) {
     const { status } = event.currentTarget.dataset as { status: StatusFilter }
     this.setData({ selectedStatus: status })
-    this.filterRecords(undefined, undefined, status)
+    this.filterEntries(undefined, undefined, status)
   },
 
-  filterRecords(
+  filterEntries(
     nextKeyword?: string,
-    nextCategory?: CategoryFilter,
+    nextType?: TypeFilter,
     nextStatus?: StatusFilter,
   ) {
-    const allRecords = getPrototypeRecords()
-    const keyword = (nextKeyword ?? this.data.keyword).trim().toLowerCase()
-    const category = nextCategory ?? this.data.selectedCategory
-    const status = nextStatus ?? this.data.selectedStatus
-    const records = allRecords.filter((record) => {
-      const matchesKeyword = !keyword || record.title.toLowerCase().includes(keyword)
-      const matchesCategory = category === 'all' || record.category === category
-      const matchesStatus = status === 'all' || record.status === status
-      return matchesKeyword && matchesCategory && matchesStatus
+    const allEntries = getPrototypeEntries()
+    const keywordValue = nextKeyword !== undefined ? nextKeyword : this.data.keyword
+    const keyword = keywordValue.trim().toLowerCase()
+    const type = nextType !== undefined ? nextType : this.data.selectedType
+    const status = nextStatus !== undefined ? nextStatus : this.data.selectedStatus
+    const entries = allEntries.filter((entry) => {
+      const matchesKeyword = !keyword
+        || entry.content.toLowerCase().includes(keyword)
+        || entry.detail.toLowerCase().includes(keyword)
+      const matchesType = type === 'all' || entry.type === type
+      const matchesStatus = status === 'all'
+        || (entry.type !== 'note' && entry.status === status)
+      return matchesKeyword && matchesType && matchesStatus
     })
-
-    this.setData({ records, totalCount: allRecords.length })
+    this.setData({ entries, totalCount: allEntries.length })
   },
 
   clearFilters() {
-    this.setData({
-      keyword: '',
-      selectedCategory: 'all',
-      selectedStatus: 'all',
-    })
-    this.filterRecords('', 'all', 'all')
+    this.setData({ keyword: '', selectedType: 'all', selectedStatus: 'all' })
+    this.filterEntries('', 'all', 'all')
   },
 
-  openRecord(event: WechatMiniprogram.BaseEvent) {
+  openEntry(event: WechatMiniprogram.BaseEvent) {
     const { id } = event.currentTarget.dataset as { id: string }
-    wx.navigateTo({ url: `/pages/detail/detail?id=${id}` })
+    const selectedEntry = this.data.entries.find((entry) => entry.id === id)
+    if (!selectedEntry) {
+      return
+    }
+    this.setData({ selectedEntry, previewVisible: true })
+  },
+
+  closePreview() {
+    this.setData({ previewVisible: false })
+  },
+
+  preventClose() {},
+
+  openSelectedEntry() {
+    const selectedEntry = this.data.selectedEntry
+    if (!selectedEntry) {
+      return
+    }
+    this.setData({ previewVisible: false })
+    wx.navigateTo({ url: `/pages/detail/detail?id=${selectedEntry.id}` })
+  },
+
+  increasePreviewProgress() {
+    const entry = this.data.selectedEntry
+    if (!entry
+      || entry.type !== 'media'
+      || entry.status !== 'active'
+      || (entry.mediaCategory !== 'anime' && entry.mediaCategory !== 'kdrama')) {
+      return
+    }
+    if (entry.totalProgress > 0 && entry.currentProgress >= entry.totalProgress) {
+      wx.showToast({ title: '已经是最后一集', icon: 'none' })
+      return
+    }
+
+    const currentProgress = entry.totalProgress > 0
+      ? Math.min(entry.totalProgress, entry.currentProgress + 1)
+      : entry.currentProgress + 1
+    const updatedEntry: PrototypeEntry = {
+      ...entry,
+      currentProgress,
+      progressText: entry.totalProgress > 0
+        ? `${currentProgress} / ${entry.totalProgress} 集`
+        : `第 ${currentProgress} 集`,
+    }
+    savePrototypeEntry(updatedEntry)
+    this.setData({ selectedEntry: updatedEntry })
+    this.filterEntries()
+    wx.showToast({ title: '进度已更新', icon: 'success' })
   },
 
   openAdd() {

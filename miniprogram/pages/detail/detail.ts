@@ -1,118 +1,133 @@
 import {
-  getPrototypeRecord,
-  getPrototypeRecords,
-  PrototypeRecord,
-  savePrototypeRecord,
+  deletePrototypeEntry,
+  getMediaStatusLabel,
+  getPrototypeEntries,
+  getPrototypeEntry,
+  PrototypeEntry,
+  savePrototypeEntry,
 } from '../../utils/prototype-data'
 
-interface TimelineEntry {
-  date: string
-  time: string
-  title: string
-  detail: string
-  active: boolean
-}
-
-function buildTimeline(record: PrototypeRecord): TimelineEntry[] {
-  const time = record.recordedAt.split(' ')[1] || '--:--'
-  const date = record.timeLabel.split(' ')[0] || record.recordedAt.split(' ')[0]
-  const mainTitle = record.status === 'completed' ? '标记为已完成' : '更新了当前状态'
-  return [
-    {
-      date,
-      time,
-      title: mainTitle,
-      detail: record.progressText,
-      active: true,
-    },
-  ]
+const emptyEntry: PrototypeEntry = {
+  id: '',
+  type: 'note',
+  typeLabel: '随记',
+  mark: '记',
+  content: '',
+  detail: '',
+  mediaCategory: 'book',
+  mediaCategoryLabel: '',
+  status: 'active',
+  statusLabel: '随记',
+  currentProgress: 0,
+  totalProgress: 0,
+  progressText: '',
+  completed: false,
+  recordedAt: '',
+  timeLabel: '',
+  dateGroup: '',
 }
 
 Page({
   data: {
-    record: getPrototypeRecords()[0],
-    timeline: [] as TimelineEntry[],
-    currentRecordId: '',
+    entry: getPrototypeEntries()[0] || emptyEntry,
+    currentEntryId: '',
+    actionMenuOpen: false,
   },
 
   onLoad(options: Record<string, string | undefined>) {
-    this.setData({ currentRecordId: options.id || getPrototypeRecords()[0].id })
+    const firstEntry = getPrototypeEntries()[0]
+    this.setData({ currentEntryId: options.id || (firstEntry ? firstEntry.id : '') })
   },
 
   onShow() {
-    this.loadRecord()
+    const entry = getPrototypeEntry(this.data.currentEntryId)
+    if (!entry) {
+      wx.reLaunch({ url: '/pages/index/index' })
+      return
+    }
+    this.setData({ entry })
   },
 
-  loadRecord() {
-    const record = getPrototypeRecord(this.data.currentRecordId) || getPrototypeRecords()[0]
-    this.setData({
-      record,
-      timeline: buildTimeline(record),
-    })
+  editEntry() {
+    this.setData({ actionMenuOpen: false })
+    wx.navigateTo({ url: `/pages/add/add?id=${this.data.entry.id}` })
   },
 
-  editRecord() {
-    wx.navigateTo({ url: `/pages/add/add?id=${this.data.record.id}` })
+  toggleActionMenu() {
+    this.setData({ actionMenuOpen: !this.data.actionMenuOpen })
+  },
+
+  toggleTodo() {
+    const entry = this.data.entry
+    const completed = !entry.completed
+    const updatedEntry: PrototypeEntry = {
+      ...entry,
+      completed,
+      status: completed ? 'completed' : 'active',
+      statusLabel: completed ? '已完成' : '待完成',
+    }
+    savePrototypeEntry(updatedEntry)
+    this.setData({ entry: updatedEntry, actionMenuOpen: false })
   },
 
   increaseProgress() {
-    const record = this.data.record
-    const currentProgress = record.totalProgress > 0
-      ? Math.min(record.totalProgress, record.currentProgress + 1)
-      : record.currentProgress + 1
-    const progressPercent = record.totalProgress > 0
-      ? Math.min(100, Math.round((currentProgress / record.totalProgress) * 100))
-      : 0
-    const updatedRecord: PrototypeRecord = {
-      ...record,
-      currentProgress,
-      progressPercent,
-      progressText: record.totalProgress > 0
-        ? `看到 ${currentProgress} / ${record.totalProgress} 集`
-        : `看到 ${currentProgress} 集`,
+    const entry = this.data.entry
+    if (entry.mediaCategory !== 'anime' && entry.mediaCategory !== 'kdrama') {
+      this.setData({ actionMenuOpen: false })
+      return
     }
-
-    savePrototypeRecord(updatedRecord)
-    this.setData({
-      record: updatedRecord,
-      timeline: buildTimeline(updatedRecord),
-    })
-    wx.showToast({
-      title: record.totalProgress > 0 && currentProgress >= record.totalProgress
-        ? '已到最后一集'
-        : '进度已 +1',
-      icon: 'success',
-    })
+    if (entry.totalProgress > 0 && entry.currentProgress >= entry.totalProgress) {
+      this.setData({ actionMenuOpen: false })
+      wx.showToast({ title: '已经是最后一集', icon: 'none' })
+      return
+    }
+    const currentProgress = entry.totalProgress > 0
+      ? Math.min(entry.totalProgress, entry.currentProgress + 1)
+      : entry.currentProgress + 1
+    const updatedEntry: PrototypeEntry = {
+      ...entry,
+      currentProgress,
+      progressText: entry.totalProgress > 0
+        ? `${currentProgress} / ${entry.totalProgress} 集`
+        : `第 ${currentProgress} 集`,
+    }
+    savePrototypeEntry(updatedEntry)
+    this.setData({ entry: updatedEntry, actionMenuOpen: false })
+    wx.showToast({ title: '进度已更新', icon: 'success' })
   },
 
-  markComplete() {
-    const record = this.data.record
-    const updatedRecord: PrototypeRecord = {
-      ...record,
+  completeMedia() {
+    const entry = this.data.entry
+    const updatedEntry: PrototypeEntry = {
+      ...entry,
       status: 'completed',
-      statusLabel: record.category === 'book'
-        ? '已读'
-        : record.category === 'movie' ? '已看' : '已完成',
-      progressText: record.category === 'book'
-        ? '已读完'
-        : record.category === 'movie' ? '已看完' : '已完成',
-      progressPercent: 100,
+      statusLabel: getMediaStatusLabel(entry.mediaCategory, 'completed'),
+      completed: true,
+      currentProgress: entry.totalProgress || entry.currentProgress,
+      progressText: entry.totalProgress > 0 ? `${entry.totalProgress} / ${entry.totalProgress} 集` : entry.progressText,
     }
-
-    savePrototypeRecord(updatedRecord)
-    this.setData({
-      record: updatedRecord,
-      timeline: buildTimeline(updatedRecord),
-    })
-    wx.showToast({ title: '已标记完成', icon: 'success' })
+    savePrototypeEntry(updatedEntry)
+    this.setData({ entry: updatedEntry, actionMenuOpen: false })
   },
 
   confirmDelete() {
+    this.setData({ actionMenuOpen: false })
     wx.showModal({
       title: '删除这条记录？',
-      content: 'Phase 1 原型暂不执行真实删除，后续会提供撤销入口。',
-      confirmText: '我知道了',
-      showCancel: false,
+      content: '删除后无法恢复。',
+      confirmText: '删除',
+      confirmColor: '#b3483f',
+      success: (result) => {
+        if (!result.confirm) {
+          return
+        }
+        deletePrototypeEntry(this.data.entry.id)
+        if (getCurrentPages().length > 1) {
+          wx.navigateBack()
+        } else {
+          wx.reLaunch({ url: '/pages/index/index' })
+        }
+      },
     })
   },
 })

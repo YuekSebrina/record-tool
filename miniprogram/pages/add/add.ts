@@ -1,126 +1,125 @@
 import {
-  categoryMetas,
-  CategoryKey,
+  EntryStatus,
+  EntryType,
+  entryTypeOptions,
   formatTimeMetadata,
-  getCategoryMeta,
-  getPrototypeRecord,
-  getPrototypeRecords,
-  getStatusLabel,
-  PrototypeRecord,
-  savePrototypeRecord,
-  StatusKey,
+  getCurrentDateTime,
+  getMediaCategory,
+  getMediaStatusLabel,
+  getMediaStatusOptions,
+  getPrototypeEntry,
+  mediaCategoryOptions,
+  MediaCategory,
+  PrototypeEntry,
+  savePrototypeEntry,
 } from '../../utils/prototype-data'
 
-interface StatusOption {
-  key: StatusKey
-  label: string
-  helper: string
+interface ComposerDraft {
+  content: string
+  type: EntryType
+  mediaCategory: MediaCategory
+  mediaStatus: EntryStatus
 }
 
-const statusOptionsByCategory: Record<CategoryKey, StatusOption[]> = {
-  book: [
-    { key: 'planned', label: '想读', helper: '先放进清单' },
-    { key: 'in-progress', label: '在读', helper: '正在阅读' },
-    { key: 'completed', label: '已读', helper: '已经读完' },
-  ],
-  anime: [
-    { key: 'planned', label: '想看', helper: '先放进清单' },
-    { key: 'in-progress', label: '在看', helper: '之后可更新集数' },
-    { key: 'completed', label: '已完成', helper: '已经看完' },
-  ],
-  movie: [
-    { key: 'planned', label: '想看', helper: '先放进清单' },
-    { key: 'completed', label: '已看', helper: '已经看完' },
-  ],
-  kdrama: [
-    { key: 'planned', label: '想看', helper: '先放进清单' },
-    { key: 'in-progress', label: '在看', helper: '之后可更新集数' },
-    { key: 'completed', label: '已完成', helper: '已经看完' },
-  ],
-}
+const COMPOSER_DRAFT_KEY = 'phase-one-composer-draft'
+const COMPOSER_SAVED_KEY = 'phase-one-composer-saved'
 
-function pad(value: number): string {
-  return String(value).padStart(2, '0')
-}
-
-function getCurrentDateTime(): { date: string; time: string } {
-  const now = new Date()
-  return {
-    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
-    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-  }
-}
-
-function getDefaultStatus(category: CategoryKey): StatusKey {
-  return category === 'movie' ? 'completed' : 'in-progress'
+function isEntryType(value: string | undefined): value is EntryType {
+  return value === 'note' || value === 'todo' || value === 'media'
 }
 
 Page({
   data: {
-    categories: categoryMetas,
-    title: '',
-    selectedCategory: 'anime' as CategoryKey,
-    selectedStatus: 'in-progress' as StatusKey,
-    statusOptions: statusOptionsByCategory.anime,
-    ...getCurrentDateTime(),
-    isEditing: false,
-    currentRecordId: '',
+    typeOptions: entryTypeOptions,
+    mediaCategories: mediaCategoryOptions,
+    mediaStatusOptions: getMediaStatusOptions('anime'),
+    selectedType: 'note' as EntryType,
+    selectedMediaCategory: 'anime' as MediaCategory,
+    selectedMediaStatus: 'active' as EntryStatus,
+    content: '',
+    detail: '',
     currentProgress: 0,
     totalProgress: 0,
-    showProgressFields: true,
+    todoCompleted: false,
+    isEditing: false,
+    currentEntryId: '',
+    fromComposer: false,
+    ...getCurrentDateTime(),
   },
 
   onLoad(options: Record<string, string | undefined>) {
-    if (!options.id) {
-      this.setData(getCurrentDateTime())
+    if (options.id) {
+      const entry = getPrototypeEntry(options.id)
+      if (entry) {
+        const [date = this.data.date, time = this.data.time] = entry.recordedAt.split(' ')
+        this.setData({
+          selectedType: entry.type,
+          selectedMediaCategory: entry.mediaCategory,
+          selectedMediaStatus: entry.status,
+          mediaStatusOptions: getMediaStatusOptions(entry.mediaCategory),
+          content: entry.content,
+          detail: entry.detail,
+          currentProgress: entry.currentProgress,
+          totalProgress: entry.totalProgress,
+          todoCompleted: entry.completed,
+          isEditing: true,
+          currentEntryId: entry.id,
+          date,
+          time,
+        })
+        return
+      }
+    }
+
+    const draft = wx.getStorageSync<ComposerDraft | ''>(COMPOSER_DRAFT_KEY)
+    if (draft && typeof draft === 'object') {
+      const mediaStatusOptions = getMediaStatusOptions(draft.mediaCategory)
+      this.setData({
+        selectedType: draft.type,
+        selectedMediaCategory: draft.mediaCategory,
+        selectedMediaStatus: mediaStatusOptions.some((option) => option.key === draft.mediaStatus)
+          ? draft.mediaStatus
+          : mediaStatusOptions[0].key,
+        mediaStatusOptions,
+        content: draft.content,
+        fromComposer: true,
+        ...getCurrentDateTime(),
+      })
+      wx.removeStorageSync(COMPOSER_DRAFT_KEY)
       return
     }
 
-    const record = getPrototypeRecord(options.id)
-    if (!record) {
-      return
-    }
-
-    const [date = this.data.date, time = this.data.time] = record.recordedAt.split(' ')
     this.setData({
-      title: record.title,
-      selectedCategory: record.category,
-      selectedStatus: record.status,
-      statusOptions: statusOptionsByCategory[record.category],
-      date,
-      time,
-      isEditing: true,
-      currentRecordId: record.id,
-      currentProgress: record.currentProgress,
-      totalProgress: record.totalProgress,
-      showProgressFields: (record.category === 'anime' || record.category === 'kdrama')
-        && record.status === 'in-progress',
+      selectedType: isEntryType(options.type) ? options.type : 'note',
+      ...getCurrentDateTime(),
     })
   },
 
-  handleTitleInput(event: WechatMiniprogram.Input) {
-    this.setData({ title: event.detail.value })
+  selectType(event: WechatMiniprogram.BaseEvent) {
+    const { type } = event.currentTarget.dataset as { type: EntryType }
+    this.setData({ selectedType: type })
   },
 
-  selectCategory(event: WechatMiniprogram.BaseEvent) {
-    const { category } = event.currentTarget.dataset as { category: CategoryKey }
-    const selectedStatus = getDefaultStatus(category)
-    this.setData({
-      selectedCategory: category,
-      selectedStatus,
-      statusOptions: statusOptionsByCategory[category],
-      showProgressFields: (category === 'anime' || category === 'kdrama')
-        && selectedStatus === 'in-progress',
-    })
+  handleContentInput(event: WechatMiniprogram.Input) {
+    this.setData({ content: event.detail.value })
   },
 
-  selectStatus(event: WechatMiniprogram.BaseEvent) {
-    const { status } = event.currentTarget.dataset as { status: StatusKey }
-    this.setData({
-      selectedStatus: status,
-      showProgressFields: (this.data.selectedCategory === 'anime'
-        || this.data.selectedCategory === 'kdrama') && status === 'in-progress',
-    })
+  handleDetailInput(event: WechatMiniprogram.Input) {
+    this.setData({ detail: event.detail.value })
+  },
+
+  selectMediaCategory(event: WechatMiniprogram.BaseEvent) {
+    const { category } = event.currentTarget.dataset as { category: MediaCategory }
+    const mediaStatusOptions = getMediaStatusOptions(category)
+    const selectedMediaStatus = mediaStatusOptions.some((option) => option.key === this.data.selectedMediaStatus)
+      ? this.data.selectedMediaStatus
+      : mediaStatusOptions[mediaStatusOptions.length - 1].key
+    this.setData({ selectedMediaCategory: category, mediaStatusOptions, selectedMediaStatus })
+  },
+
+  selectMediaStatus(event: WechatMiniprogram.BaseEvent) {
+    const { status } = event.currentTarget.dataset as { status: EntryStatus }
+    this.setData({ selectedMediaStatus: status })
   },
 
   handleCurrentProgress(event: WechatMiniprogram.Input) {
@@ -131,6 +130,10 @@ Page({
     this.setData({ totalProgress: Math.max(0, Number(event.detail.value) || 0) })
   },
 
+  toggleTodoCompleted() {
+    this.setData({ todoCompleted: !this.data.todoCompleted })
+  },
+
   selectDate(event: WechatMiniprogram.PickerChange) {
     this.setData({ date: String(event.detail.value) })
   },
@@ -139,67 +142,66 @@ Page({
     this.setData({ time: String(event.detail.value) })
   },
 
-  saveRecord() {
-    const title = this.data.title.trim()
-    if (!title) {
-      wx.showToast({ title: '先写下作品名称', icon: 'none' })
+  saveEntry() {
+    const content = this.data.content.trim()
+    if (!content) {
+      wx.showToast({ title: '先写点内容', icon: 'none' })
       return
     }
 
-    const category = getCategoryMeta(this.data.selectedCategory)
-    const previousRecord = this.data.currentRecordId
-      ? getPrototypeRecord(this.data.currentRecordId)
-      : undefined
-    const status = this.data.selectedStatus
-    const completed = status === 'completed'
-    const isSeries = category.key === 'anime' || category.key === 'kdrama'
-    const totalProgress = isSeries ? this.data.totalProgress : 0
-    const currentProgress = completed && totalProgress > 0
-      ? totalProgress
-      : isSeries ? Math.min(this.data.currentProgress, totalProgress || Number.MAX_SAFE_INTEGER) : 0
-    const progressText = completed
-      ? getStatusLabel(category.key, status)
-      : status === 'planned'
-        ? '已加入清单'
-        : currentProgress > 0
-          ? totalProgress > 0
-            ? `看到 ${currentProgress} / ${totalProgress} 集`
-            : `看到 ${currentProgress} 集`
-          : '待更新进度'
-    const progressPercent = completed
-      ? 100
-      : totalProgress > 0 ? Math.round((currentProgress / totalProgress) * 100) : 0
+    const type = this.data.selectedType
+    const mediaCategory = getMediaCategory(this.data.selectedMediaCategory)
+    const mediaStatus = this.data.selectedMediaStatus
+    const completed = type === 'todo'
+      ? this.data.todoCompleted
+      : type === 'media' && mediaStatus === 'completed'
+    const status: EntryStatus = type === 'todo'
+      ? completed ? 'completed' : 'active'
+      : type === 'media' ? mediaStatus : 'active'
+    const supportsProgress = type === 'media'
+      && (mediaCategory.key === 'anime' || mediaCategory.key === 'kdrama')
+    const totalProgress = supportsProgress ? this.data.totalProgress : 0
+    const currentProgress = supportsProgress && status === 'active'
+      ? Math.min(this.data.currentProgress, totalProgress || Number.MAX_SAFE_INTEGER)
+      : supportsProgress && status === 'completed' && totalProgress > 0 ? totalProgress : 0
+    const progressText = supportsProgress && currentProgress > 0
+      ? totalProgress > 0 ? `${currentProgress} / ${totalProgress} 集` : `第 ${currentProgress} 集`
+      : ''
     const recordedAt = `${this.data.date} ${this.data.time}`
-    const timeMetadata = formatTimeMetadata(recordedAt)
-    const record: PrototypeRecord = {
-      id: previousRecord?.id || `prototype-${Date.now()}`,
-      editionIndex: previousRecord?.editionIndex
-        || pad(getPrototypeRecords().length + 1),
-      title,
-      category: category.key,
-      categoryLabel: category.label,
-      categoryMark: category.mark,
+    const entry: PrototypeEntry = {
+      id: this.data.currentEntryId || `entry-${Date.now()}`,
+      type,
+      typeLabel: type === 'note' ? '随记' : type === 'todo' ? '待办' : '书影音',
+      mark: type === 'note' ? '记' : type === 'todo' ? '待' : mediaCategory.mark,
+      content,
+      detail: this.data.detail.trim(),
+      mediaCategory: mediaCategory.key,
+      mediaCategoryLabel: type === 'media' ? mediaCategory.label : '',
       status,
-      statusLabel: getStatusLabel(category.key, status),
+      statusLabel: type === 'note'
+        ? '随记'
+        : type === 'todo'
+          ? completed ? '已完成' : '待完成'
+          : getMediaStatusLabel(mediaCategory.key, status),
       currentProgress,
       totalProgress,
       progressText,
-      progressPercent,
+      completed,
       recordedAt,
-      ...timeMetadata,
-      note: previousRecord?.note || '一条轻量记录。需要时，可以稍后再补充进度和想法。',
-      accentClass: category.accentClass,
+      ...formatTimeMetadata(recordedAt),
     }
 
-    savePrototypeRecord(record)
-    wx.showToast({ title: '已留下一条记录', icon: 'success' })
-
+    savePrototypeEntry(entry)
+    if (this.data.fromComposer) {
+      wx.setStorageSync(COMPOSER_SAVED_KEY, true)
+    }
+    wx.showToast({ title: '已保存', icon: 'success' })
     setTimeout(() => {
       if (this.data.isEditing) {
         wx.navigateBack()
         return
       }
-      wx.redirectTo({ url: `/pages/detail/detail?id=${record.id}` })
-    }, 500)
+      wx.redirectTo({ url: `/pages/detail/detail?id=${entry.id}` })
+    }, 400)
   },
 })

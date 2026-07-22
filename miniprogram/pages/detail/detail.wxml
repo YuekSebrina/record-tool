@@ -1,77 +1,48 @@
-<navigation-bar title="记录详情" color="#17211b" background="#f3efe4"></navigation-bar>
+<navigation-bar title="记录详情" color="#202420" background="#f3efe4"></navigation-bar>
 
 <view class="page-canvas page-canvas--detail detail-page">
-  <view class="detail-hero">
-    <view class="detail-cover {{record.accentClass}}">
-      <view class="detail-cover__topline">
-        <text>NO.{{record.editionIndex}}</text>
-        <text>{{record.categoryLabel}}</text>
-      </view>
-      <text class="detail-cover__mark">{{record.categoryMark}}</text>
-      <text class="detail-cover__footer">PRIVATE ARCHIVE</text>
+  <view class="detail-meta">
+    <text class="type-badge">{{entry.type === 'media' ? entry.mediaCategoryLabel : entry.typeLabel}}</text>
+    <text>{{entry.statusLabel}}</text>
+    <text>{{entry.timeLabel}}</text>
+  </view>
+
+  <text class="detail-content {{entry.completed && entry.type === 'todo' ? 'detail-content--completed' : ''}}">{{entry.content}}</text>
+
+  <text wx:if="{{entry.detail}}" class="detail-note">{{entry.detail}}</text>
+
+  <view wx:if="{{entry.type === 'media' && entry.progressText}}" class="progress-box">
+    <view>
+      <text>当前进度</text>
+      <text>{{entry.progressText}}</text>
     </view>
-    <view class="detail-summary">
-      <text class="eyebrow">{{record.categoryLabel}} / {{record.statusLabel}}</text>
-      <text class="detail-title display-serif">{{record.title}}</text>
-      <text class="detail-progress">{{record.progressText}}</text>
-      <view wx:if="{{record.status === 'in-progress' && record.totalProgress > 0}}" class="detail-progress-track">
-        <view style="width: {{record.progressPercent}}%"></view>
-      </view>
-      <text class="detail-time">记录于 {{record.recordedAt}}</text>
+    <view wx:if="{{entry.totalProgress > 0}}" class="progress-track">
+      <view style="width: {{entry.currentProgress / entry.totalProgress * 100}}%"></view>
     </view>
   </view>
 
-  <view class="action-row">
-    <button wx:if="{{record.status === 'in-progress'}}" class="action-button action-button--primary" bindtap="increaseProgress">
-      <text class="action-button__mark">+1</text>
-      <text>更新一集</text>
-    </button>
-    <button wx:if="{{record.status !== 'completed'}}" class="action-button" bindtap="markComplete">
-      <text class="action-button__mark">✓</text>
-      <text>标记完成</text>
-    </button>
-    <button class="action-button" bindtap="editRecord">
-      <text class="action-button__mark">↗</text>
-      <text>编辑记录</text>
-    </button>
+  <view class="created-time">
+    <text>记录时间</text>
+    <text>{{entry.recordedAt}}</text>
   </view>
+</view>
 
-  <view class="detail-section">
-    <view class="detail-section__heading">
-      <text class="section-heading">留下一句话</text>
-      <text>NOTE 01</text>
+<view class="detail-action-dock">
+  <view class="action-menu {{actionMenuOpen ? 'action-menu--open' : ''}}">
+    <view class="menu-action menu-action--danger" bindtap="confirmDelete">删除</view>
+    <view class="menu-action" bindtap="editEntry">编辑</view>
+    <view wx:if="{{entry.type === 'todo'}}" class="menu-action" bindtap="toggleTodo">
+      {{entry.completed ? '重新打开' : '完成'}}
     </view>
-    <view class="quote-block">
-      <text class="quote-mark">“</text>
-      <text class="quote-copy display-serif">{{record.note}}</text>
-    </view>
+    <view wx:if="{{entry.type === 'media' && entry.status !== 'completed'}}" class="menu-action" bindtap="completeMedia">完成</view>
+    <view wx:if="{{entry.type === 'media' && entry.status === 'active' && (entry.mediaCategory === 'anime' || entry.mediaCategory === 'kdrama')}}" class="menu-action" bindtap="increaseProgress">进度 +1</view>
   </view>
-
-  <view class="detail-section detail-section--timeline">
-    <view class="detail-section__heading">
-      <text class="section-heading">时间轨迹</text>
-      <text>{{timeline.length}} EVENTS</text>
-    </view>
-    <view class="detail-timeline">
-      <view class="detail-event" wx:for="{{timeline}}" wx:key="date">
-        <view class="detail-event__date">
-          <text>{{item.date}}</text>
-          <text>{{item.time}}</text>
-        </view>
-        <view class="detail-event__axis">
-          <view class="detail-event__dot {{item.active ? 'detail-event__dot--active' : ''}}"></view>
-          <view class="detail-event__line"></view>
-        </view>
-        <view class="detail-event__body">
-          <text class="detail-event__title">{{item.title}}</text>
-          <text class="detail-event__copy">{{item.detail}}</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <view class="detail-footer">
-    <text>这条记录只属于你</text>
-    <text class="delete-action" bindtap="confirmDelete">删除记录</text>
+  <view
+    class="action-toggle {{actionMenuOpen ? 'action-toggle--open' : ''}}"
+    bindtap="toggleActionMenu"
+    aria-role="button"
+    aria-label="{{actionMenuOpen ? '收起操作' : '展开操作'}}"
+  >
+    <view class="menu-chevron {{actionMenuOpen ? 'menu-chevron--left' : 'menu-chevron--down'}}"></view>
   </view>
 </view>

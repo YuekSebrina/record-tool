@@ -1,145 +1,76 @@
-export type CategoryKey = 'book' | 'anime' | 'movie' | 'kdrama'
-export type StatusKey = 'planned' | 'in-progress' | 'completed'
+export type EntryType = 'note' | 'todo' | 'media'
+export type EntryStatus = 'active' | 'planned' | 'completed'
+export type MediaCategory = 'book' | 'anime' | 'movie' | 'kdrama'
 
-export interface CategoryMeta {
-  key: CategoryKey
+export interface EntryTypeOption {
+  key: EntryType
   label: string
-  mark: string
-  helper: string
-  accentClass: string
+  placeholder: string
 }
 
-export interface PrototypeRecord {
+export interface MediaCategoryOption {
+  key: MediaCategory
+  label: string
+  mark: string
+}
+
+export interface MediaStatusOption {
+  key: EntryStatus
+  label: string
+}
+
+interface LegacyPrototypeRecord {
   id: string
-  editionIndex: string
   title: string
-  category: CategoryKey
+  category: MediaCategory
   categoryLabel: string
   categoryMark: string
-  status: StatusKey
+  status: 'planned' | 'in-progress' | 'completed'
   statusLabel: string
   currentProgress: number
   totalProgress: number
   progressText: string
-  progressPercent: number
+  recordedAt: string
+  note: string
+}
+
+export interface PrototypeEntry {
+  id: string
+  type: EntryType
+  typeLabel: string
+  mark: string
+  content: string
+  detail: string
+  mediaCategory: MediaCategory
+  mediaCategoryLabel: string
+  status: EntryStatus
+  statusLabel: string
+  currentProgress: number
+  totalProgress: number
+  progressText: string
+  completed: boolean
   recordedAt: string
   timeLabel: string
   dateGroup: string
-  note: string
-  accentClass: string
 }
 
-export const categoryMetas: CategoryMeta[] = [
-  {
-    key: 'book',
-    label: '书籍',
-    mark: '书',
-    helper: '想读、在读与已读',
-    accentClass: 'accent--book',
-  },
-  {
-    key: 'anime',
-    label: '动漫',
-    mark: '漫',
-    helper: '追番与集数进度',
-    accentClass: 'accent--anime',
-  },
-  {
-    key: 'movie',
-    label: '电影',
-    mark: '影',
-    helper: '想看与已看',
-    accentClass: 'accent--movie',
-  },
-  {
-    key: 'kdrama',
-    label: '韩剧',
-    mark: '韩',
-    helper: '在看与完成进度',
-    accentClass: 'accent--kdrama',
-  },
+export const entryTypeOptions: EntryTypeOption[] = [
+  { key: 'note', label: '随记', placeholder: '写下一段话...' },
+  { key: 'todo', label: '待办', placeholder: '添加一件要做的事...' },
+  { key: 'media', label: '书影音', placeholder: '输入书名、电影或剧名...' },
 ]
 
-const staticRecords: PrototypeRecord[] = [
-  {
-    id: 'frieren',
-    editionIndex: '01',
-    title: '葬送的芙莉莲',
-    category: 'anime',
-    categoryLabel: '动漫',
-    categoryMark: '漫',
-    status: 'in-progress',
-    statusLabel: '在看',
-    currentProgress: 18,
-    totalProgress: 28,
-    progressText: '看到 18 / 28 集',
-    progressPercent: 64,
-    recordedAt: '2026-07-22 21:10',
-    timeLabel: '今天 21:10',
-    dateGroup: '今天',
-    note: '勇者一行结束冒险之后，精灵魔法使重新理解时间与相遇。',
-    accentClass: 'accent--anime',
-  },
-  {
-    id: 'when-life-gives-you-tangerines',
-    editionIndex: '02',
-    title: '苦尽柑来遇见你',
-    category: 'kdrama',
-    categoryLabel: '韩剧',
-    categoryMark: '韩',
-    status: 'in-progress',
-    statusLabel: '在看',
-    currentProgress: 8,
-    totalProgress: 16,
-    progressText: '看到 8 / 16 集',
-    progressPercent: 50,
-    recordedAt: '2026-07-22 19:35',
-    timeLabel: '今天 19:35',
-    dateGroup: '今天',
-    note: '把漫长人生折进四季，记下爱顺与宽植共同走过的年月。',
-    accentClass: 'accent--kdrama',
-  },
-  {
-    id: 'ren-jian-cao-mu',
-    editionIndex: '03',
-    title: '人间草木',
-    category: 'book',
-    categoryLabel: '书籍',
-    categoryMark: '书',
-    status: 'completed',
-    statusLabel: '已读',
-    currentProgress: 0,
-    totalProgress: 0,
-    progressText: '已读完',
-    progressPercent: 100,
-    recordedAt: '2026-07-21 22:40',
-    timeLabel: '昨天 22:40',
-    dateGroup: '昨天',
-    note: '草木虫鱼皆有性情，平常日子也值得郑重收藏。',
-    accentClass: 'accent--book',
-  },
-  {
-    id: 'in-the-mood-for-love',
-    editionIndex: '04',
-    title: '花样年华',
-    category: 'movie',
-    categoryLabel: '电影',
-    categoryMark: '影',
-    status: 'completed',
-    statusLabel: '已看',
-    currentProgress: 0,
-    totalProgress: 0,
-    progressText: '已看完',
-    progressPercent: 100,
-    recordedAt: '2026-07-19 23:18',
-    timeLabel: '07月19日 23:18',
-    dateGroup: '更早',
-    note: '那些没有说出口的话，被留在走廊、雨夜和旧时光里。',
-    accentClass: 'accent--movie',
-  },
+export const mediaCategoryOptions: MediaCategoryOption[] = [
+  { key: 'book', label: '书籍', mark: '书' },
+  { key: 'anime', label: '动漫', mark: '漫' },
+  { key: 'movie', label: '电影', mark: '影' },
+  { key: 'kdrama', label: '韩剧', mark: '韩' },
 ]
 
-const PROTOTYPE_STORAGE_KEY = 'phase-one-prototype-record'
+const STORAGE_KEY = 'phase-one-simple-entries'
+const DELETED_STORAGE_KEY = 'phase-one-deleted-entry-ids'
+const LEGACY_STORAGE_KEY = 'phase-one-prototype-record'
+const MIGRATION_DONE_KEY = 'phase-one-legacy-migration-done'
 
 function pad(value: number): string {
   return String(value).padStart(2, '0')
@@ -147,6 +78,12 @@ function pad(value: number): string {
 
 function toDateValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function makeRelativeDate(dayOffset: number, hour: number, minute: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() + dayOffset)
+  return `${toDateValue(date)} ${pad(hour)}:${pad(minute)}`
 }
 
 export function formatTimeMetadata(recordedAt: string): {
@@ -172,53 +109,225 @@ export function formatTimeMetadata(recordedAt: string): {
   return { timeLabel: `${dateLabel} ${time}`, dateGroup: '更早' }
 }
 
-export function getCategoryMeta(category: CategoryKey): CategoryMeta {
-  return categoryMetas.find((item) => item.key === category) || categoryMetas[0]
+export function getCurrentDateTime(): { date: string; time: string } {
+  const now = new Date()
+  return {
+    date: toDateValue(now),
+    time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  }
 }
 
-export function getStatusLabel(category: CategoryKey, status: StatusKey): string {
+export function getMediaCategory(category: MediaCategory): MediaCategoryOption {
+  return mediaCategoryOptions.find((item) => item.key === category) || mediaCategoryOptions[0]
+}
+
+export function getMediaStatusOptions(category: MediaCategory): MediaStatusOption[] {
+  if (category === 'book') {
+    return [
+      { key: 'planned', label: '想读' },
+      { key: 'active', label: '在读' },
+      { key: 'completed', label: '已读' },
+    ]
+  }
+  if (category === 'movie') {
+    return [
+      { key: 'planned', label: '想看' },
+      { key: 'completed', label: '已看' },
+    ]
+  }
+  return [
+    { key: 'planned', label: '想看' },
+    { key: 'active', label: '在看' },
+    { key: 'completed', label: '已完成' },
+  ]
+}
+
+export function getMediaStatusLabel(category: MediaCategory, status: EntryStatus): string {
   if (status === 'planned') {
     return category === 'book' ? '想读' : '想看'
   }
-  if (status === 'in-progress') {
-    return category === 'book' ? '在读' : '在看'
+  if (status === 'completed') {
+    if (category === 'book') {
+      return '已读'
+    }
+    return category === 'movie' ? '已看' : '已完成'
   }
-  if (category === 'book') {
-    return '已读'
-  }
-  if (category === 'movie') {
-    return '已看'
-  }
-  return '已完成'
+  return category === 'book' ? '在读' : '在看'
 }
 
-export function getPrototypeRecords(): PrototypeRecord[] {
-  const savedRecords = wx.getStorageSync<PrototypeRecord[]>(PROTOTYPE_STORAGE_KEY)
-  const records = [
-    ...(Array.isArray(savedRecords) ? savedRecords : []).map((record) => ({ ...record })),
-    ...staticRecords
-      .filter((record) => !Array.isArray(savedRecords)
-        || !savedRecords.some((savedRecord) => savedRecord.id === record.id))
-      .map((record) => ({ ...record })),
+function getMigratedEntries(): PrototypeEntry[] {
+  const legacyValue = wx.getStorageSync<LegacyPrototypeRecord | LegacyPrototypeRecord[]>(LEGACY_STORAGE_KEY)
+  const legacyRecords = Array.isArray(legacyValue)
+    ? legacyValue
+    : legacyValue && typeof legacyValue === 'object' ? [legacyValue] : []
+
+  return legacyRecords.map((record) => {
+    const status: EntryStatus = record.status === 'in-progress' ? 'active' : record.status
+    const supportsProgress = record.category === 'anime' || record.category === 'kdrama'
+    const totalProgress = supportsProgress && status !== 'planned' ? record.totalProgress : 0
+    const currentProgress = supportsProgress && status === 'active'
+      ? Math.min(record.currentProgress, totalProgress || Number.MAX_SAFE_INTEGER)
+      : supportsProgress && status === 'completed' && totalProgress > 0 ? totalProgress : 0
+    const progressText = currentProgress > 0
+      ? totalProgress > 0 ? `${currentProgress} / ${totalProgress} 集` : `第 ${currentProgress} 集`
+      : ''
+    return {
+      id: `legacy-${record.id}`,
+      type: 'media',
+      typeLabel: '书影音',
+      mark: record.categoryMark,
+      content: record.title,
+      detail: record.note || '',
+      mediaCategory: record.category,
+      mediaCategoryLabel: record.categoryLabel,
+      status,
+      statusLabel: getMediaStatusLabel(record.category, status),
+      currentProgress,
+      totalProgress,
+      progressText,
+      completed: status === 'completed',
+      recordedAt: record.recordedAt,
+      ...formatTimeMetadata(record.recordedAt),
+    }
+  })
+}
+
+const sampleEntries: PrototypeEntry[] = [
+  {
+    id: 'sample-note',
+    type: 'note',
+    typeLabel: '随记',
+    mark: '记',
+    content: '今天路过一家很安静的小店，窗边有阳光，也有刚烤好的面包香。',
+    detail: '',
+    mediaCategory: 'book',
+    mediaCategoryLabel: '',
+    status: 'active',
+    statusLabel: '随记',
+    currentProgress: 0,
+    totalProgress: 0,
+    progressText: '',
+    completed: false,
+    recordedAt: makeRelativeDate(0, 9, 20),
+    timeLabel: '',
+    dateGroup: '',
+  },
+  {
+    id: 'sample-todo',
+    type: 'todo',
+    typeLabel: '待办',
+    mark: '待',
+    content: '整理本周要做的事情',
+    detail: '今天结束前',
+    mediaCategory: 'book',
+    mediaCategoryLabel: '',
+    status: 'active',
+    statusLabel: '待完成',
+    currentProgress: 0,
+    totalProgress: 0,
+    progressText: '',
+    completed: false,
+    recordedAt: makeRelativeDate(0, 8, 40),
+    timeLabel: '',
+    dateGroup: '',
+  },
+  {
+    id: 'sample-anime',
+    type: 'media',
+    typeLabel: '书影音',
+    mark: '漫',
+    content: '葬送的芙莉莲',
+    detail: '',
+    mediaCategory: 'anime',
+    mediaCategoryLabel: '动漫',
+    status: 'active',
+    statusLabel: '进行中',
+    currentProgress: 18,
+    totalProgress: 28,
+    progressText: '18 / 28 集',
+    completed: false,
+    recordedAt: makeRelativeDate(-1, 21, 10),
+    timeLabel: '',
+    dateGroup: '',
+  },
+  {
+    id: 'sample-completed-todo',
+    type: 'todo',
+    typeLabel: '待办',
+    mark: '待',
+    content: '给妈妈回电话',
+    detail: '',
+    mediaCategory: 'book',
+    mediaCategoryLabel: '',
+    status: 'completed',
+    statusLabel: '已完成',
+    currentProgress: 0,
+    totalProgress: 0,
+    progressText: '',
+    completed: true,
+    recordedAt: makeRelativeDate(-1, 18, 30),
+    timeLabel: '',
+    dateGroup: '',
+  },
+]
+
+export function getPrototypeEntries(): PrototypeEntry[] {
+  const storedEntries = wx.getStorageSync<PrototypeEntry[]>(STORAGE_KEY)
+  let savedEntries = Array.isArray(storedEntries) ? storedEntries : []
+  const deletedIds = wx.getStorageSync<string[]>(DELETED_STORAGE_KEY)
+  const hiddenIds = Array.isArray(deletedIds) ? deletedIds : []
+  const migrationDone = wx.getStorageSync<boolean>(MIGRATION_DONE_KEY)
+  if (!migrationDone) {
+    const migratedEntries = getMigratedEntries()
+    const existingIds = new Set(savedEntries.map((entry) => entry.id))
+    savedEntries = [
+      ...savedEntries,
+      ...migratedEntries.filter((entry) => !existingIds.has(entry.id) && !hiddenIds.includes(entry.id)),
+    ]
+    wx.setStorageSync(STORAGE_KEY, savedEntries)
+    wx.setStorageSync(MIGRATION_DONE_KEY, true)
+  }
+  const entries = [
+    ...savedEntries
+      .filter((entry) => !hiddenIds.includes(entry.id))
+      .map((entry) => ({ ...entry })),
+    ...sampleEntries
+      .filter((entry) => !hiddenIds.includes(entry.id))
+      .filter((entry) => !Array.isArray(savedEntries)
+        || !savedEntries.some((savedEntry) => savedEntry.id === entry.id))
+      .map((entry) => ({ ...entry })),
   ]
 
-  return records
-    .map((record) => ({
-      ...record,
-      ...formatTimeMetadata(record.recordedAt),
+  return entries
+    .map((entry) => ({
+      ...entry,
+      ...formatTimeMetadata(entry.recordedAt),
     }))
     .sort((left, right) => right.recordedAt.localeCompare(left.recordedAt))
 }
 
-export function getPrototypeRecord(id: string): PrototypeRecord | undefined {
-  return getPrototypeRecords().find((record) => record.id === id)
+export function getPrototypeEntry(id: string): PrototypeEntry | undefined {
+  return getPrototypeEntries().find((entry) => entry.id === id)
 }
 
-export function savePrototypeRecord(record: PrototypeRecord): void {
-  const savedRecords = wx.getStorageSync<PrototypeRecord[]>(PROTOTYPE_STORAGE_KEY)
-  const currentRecords = Array.isArray(savedRecords) ? savedRecords : []
-  wx.setStorageSync(PROTOTYPE_STORAGE_KEY, [
-    record,
-    ...currentRecords.filter((savedRecord) => savedRecord.id !== record.id),
+export function savePrototypeEntry(entry: PrototypeEntry): void {
+  const savedEntries = wx.getStorageSync<PrototypeEntry[]>(STORAGE_KEY)
+  const currentEntries = Array.isArray(savedEntries) ? savedEntries : []
+  wx.setStorageSync(STORAGE_KEY, [
+    entry,
+    ...currentEntries.filter((savedEntry) => savedEntry.id !== entry.id),
   ])
+  const deletedIds = wx.getStorageSync<string[]>(DELETED_STORAGE_KEY)
+  if (Array.isArray(deletedIds) && deletedIds.includes(entry.id)) {
+    wx.setStorageSync(DELETED_STORAGE_KEY, deletedIds.filter((id) => id !== entry.id))
+  }
+}
+
+export function deletePrototypeEntry(id: string): void {
+  const savedEntries = wx.getStorageSync<PrototypeEntry[]>(STORAGE_KEY)
+  const currentEntries = Array.isArray(savedEntries) ? savedEntries : []
+  wx.setStorageSync(STORAGE_KEY, currentEntries.filter((entry) => entry.id !== id))
+  const deletedIds = wx.getStorageSync<string[]>(DELETED_STORAGE_KEY)
+  const currentDeletedIds = Array.isArray(deletedIds) ? deletedIds : []
+  wx.setStorageSync(DELETED_STORAGE_KEY, Array.from(new Set([...currentDeletedIds, id])))
 }

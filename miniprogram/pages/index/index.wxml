@@ -1,109 +1,142 @@
-<navigation-bar title="留痕" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+<navigation-bar title="拾羽" back="{{false}}" color="#202420" background="#f3efe4"></navigation-bar>
 
-<view class="page-canvas home-page">
-  <view class="hero">
-    <view class="hero-copy">
-      <text class="eyebrow">{{issueLabel}}</text>
-      <view class="hero-title display-serif">
-        <text>把喜欢的，</text>
-        <text>留在时间里。</text>
+<view class="page-canvas home-page {{layoutScrollable ? 'home-page--scrolling' : ''}}">
+  <view class="page-heading">
+    <text class="page-heading__title">记点什么</text>
+    <text class="page-heading__date">{{dateLabel}}</text>
+  </view>
+
+  <view class="composer" style="min-height: {{composerMinHeight}}px">
+    <view class="type-tabs">
+      <view
+        class="type-tab {{selectedType === item.key ? 'type-tab--active' : ''}}"
+        wx:for="{{typeOptions}}"
+        wx:key="key"
+        data-type="{{item.key}}"
+        bindtap="selectType"
+      >{{item.label}}</view>
+    </view>
+
+    <textarea
+      class="composer-input"
+      value="{{draft}}"
+      placeholder="{{placeholder}}"
+      placeholder-class="composer-input__placeholder"
+      maxlength="500"
+      auto-height="true"
+      bindinput="handleDraftInput"
+    ></textarea>
+
+    <view wx:if="{{selectedType === 'media'}}" class="media-options">
+      <view class="option-row">
+        <view
+          class="option-chip {{selectedMediaCategory === item.key ? 'option-chip--active' : ''}}"
+          wx:for="{{mediaCategories}}"
+          wx:key="key"
+          data-category="{{item.key}}"
+          bindtap="selectMediaCategory"
+        >{{item.label}}</view>
       </view>
-      <text class="hero-date">{{dateLabel}}</text>
-    </view>
-    <view class="issue-stamp">
-      <text class="stamp-small">ISSUE</text>
-      <text class="stamp-number">07</text>
-    </view>
-  </view>
-
-  <view class="quick-entry" bindtap="openAdd" hover-class="quick-entry--pressed">
-    <view class="quick-entry__mark">＋</view>
-    <view class="quick-entry__copy">
-      <text class="quick-entry__title">记录一个作品</text>
-      <text class="quick-entry__hint">只写名字也可以，时间默认现在</text>
-    </view>
-    <text class="quick-entry__arrow">→</text>
-  </view>
-
-  <scroll-view class="category-strip" scroll-x="true" show-scrollbar="{{false}}">
-    <view class="category-strip__inner">
-      <view class="category-chip" wx:for="{{categorySummary}}" wx:key="key">
-        <text class="category-chip__mark {{item.accentClass}}">{{item.mark}}</text>
-        <text class="category-chip__label">{{item.label}}</text>
-        <text class="category-chip__count">{{item.count}}</text>
+      <view class="option-row option-row--status">
+        <view
+          class="option-chip option-chip--quiet {{selectedMediaStatus === item.key ? 'option-chip--active' : ''}}"
+          wx:for="{{mediaStatusOptions}}"
+          wx:key="key"
+          data-status="{{item.key}}"
+          bindtap="selectMediaStatus"
+        >{{item.label}}</view>
       </view>
     </view>
-  </scroll-view>
 
-  <view class="section-bar">
-    <view>
-      <text class="section-heading">接着看</text>
-      <text class="section-caption">上次停下来的地方</text>
+    <view class="composer-footer">
+      <text class="more-options" bindtap="openMoreOptions">更多选项</text>
+      <button class="save-button" disabled="{{!draft}}" bindtap="saveQuickEntry">保存</button>
     </view>
-    <text class="section-action" bindtap="openAll">全部 {{continueRecords.length}}</text>
   </view>
 
-  <view wx:if="{{continueRecords.length}}" class="continue-list">
+  <view class="section-heading">
+    <text>最近记录</text>
+    <text bindtap="openAll">查看全部</text>
+  </view>
+
+  <view wx:if="{{entries.length}}" class="entry-list recent-content">
     <view
-      class="continue-card"
-      wx:for="{{continueRecords}}"
+      class="entry-row {{item.type === 'todo' && item.completed ? 'entry-row--completed' : ''}}"
+      wx:for="{{entries}}"
       wx:key="id"
       data-id="{{item.id}}"
-      bindtap="openRecord"
+      bindtap="openEntry"
     >
-      <view class="continue-card__mark {{item.accentClass}}">{{item.categoryMark}}</view>
-      <view class="continue-card__body">
-        <view class="continue-card__meta">
-          <text>{{item.categoryLabel}} · {{item.statusLabel}}</text>
+      <view
+        wx:if="{{item.type === 'todo'}}"
+        class="todo-check {{item.completed ? 'todo-check--completed' : ''}}"
+        data-id="{{item.id}}"
+        catchtap="toggleTodo"
+      >{{item.completed ? '✓' : ''}}</view>
+      <view wx:else class="entry-mark">{{item.mark}}</view>
+
+      <view class="entry-content">
+        <text class="entry-text">{{item.content}}</text>
+        <view class="entry-meta">
+          <text>{{item.type === 'media' ? item.mediaCategoryLabel : item.typeLabel}}</text>
+          <text>{{item.statusLabel}}</text>
+          <text>{{item.progressText}}</text>
           <text>{{item.timeLabel}}</text>
         </view>
-        <text class="continue-card__title">{{item.title}}</text>
-        <view class="progress-row">
-          <view wx:if="{{item.totalProgress > 0}}" class="progress-track">
-            <view class="progress-fill" style="width: {{item.progressPercent}}%"></view>
-          </view>
-          <text class="progress-copy">{{item.progressText}}</text>
-        </view>
       </view>
-      <button
-        class="progress-button"
+
+      <view
+        wx:if="{{item.type === 'media' && item.status === 'active' && (item.mediaCategory === 'anime' || item.mediaCategory === 'kdrama')}}"
+        class="small-action"
         data-id="{{item.id}}"
         catchtap="increaseProgress"
+        aria-role="button"
         aria-label="进度加一"
-      >+1</button>
+      >+1</view>
     </view>
   </view>
 
-  <view wx:else class="empty-inline">
-    <text class="empty-inline__title">还没有进行中的作品</text>
-    <text class="empty-inline__copy">记录一本书或一部剧，让它出现在这里。</text>
+  <view wx:else class="empty-state recent-content">
+    <text>还没有记录</text>
+    <text>从上面的输入框开始就可以。</text>
   </view>
+</view>
 
-  <view class="section-bar section-bar--recent">
-    <view>
-      <text class="section-heading">最近留痕</text>
-      <text class="section-caption">按记录时间排列</text>
+<view wx:if="{{previewVisible && selectedEntry}}" class="preview-overlay" bindtap="closePreview">
+  <view class="preview-card" catchtap="preventClose">
+    <view class="preview-header">
+      <text class="preview-type">{{selectedEntry.type === 'media' ? selectedEntry.mediaCategoryLabel : selectedEntry.typeLabel}}</text>
+      <text class="preview-status">{{selectedEntry.statusLabel}}</text>
     </view>
-    <text class="section-action" bindtap="openAll">查看全部</text>
-  </view>
-
-  <view class="timeline-list">
-    <view
-      class="timeline-row"
-      wx:for="{{recentRecords}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="openRecord"
-    >
-      <text class="timeline-row__index">{{item.editionIndex}}</text>
-      <view class="timeline-row__rule"></view>
-      <view class="timeline-row__body">
-        <text class="timeline-row__title">{{item.title}}</text>
-        <text class="timeline-row__meta">{{item.categoryLabel}} · {{item.statusLabel}} · {{item.timeLabel}}</text>
+    <view class="preview-body">
+      <view class="preview-copy">
+        <text class="preview-content {{selectedEntry.type === 'todo' && selectedEntry.completed ? 'preview-content--completed' : ''}}">{{selectedEntry.content}}</text>
+        <text wx:if="{{selectedEntry.detail}}" class="preview-detail">{{selectedEntry.detail}}</text>
       </view>
-      <text class="timeline-row__arrow">↗</text>
+      <view wx:if="{{selectedEntry.type === 'media' && (selectedEntry.mediaCategory === 'anime' || selectedEntry.mediaCategory === 'kdrama')}}" class="preview-progress-panel {{selectedEntry.status !== 'active' ? 'preview-progress-panel--readonly' : ''}}">
+        <text class="preview-progress-label">当前集数</text>
+        <view class="preview-progress-value">
+          <text class="preview-progress-current">{{selectedEntry.currentProgress}}</text>
+          <text wx:if="{{selectedEntry.totalProgress > 0}}" class="preview-progress-total"> / {{selectedEntry.totalProgress}}</text>
+          <text class="preview-progress-unit">集</text>
+        </view>
+        <view
+          wx:if="{{selectedEntry.status === 'active'}}"
+          class="preview-progress-add"
+          bindtap="increasePreviewProgress"
+          aria-role="button"
+          aria-label="进度加一"
+        >+1</view>
+      </view>
+    </view>
+    <view class="preview-meta">
+      <text>{{selectedEntry.timeLabel}}</text>
+    </view>
+    <view class="preview-actions">
+      <view bindtap="closePreview">关闭</view>
+      <view bindtap="openSelectedEntry">查看详情</view>
     </view>
   </view>
 </view>
 
-<bottom-nav active="home"></bottom-nav>
+<bottom-nav id="home-bottom-nav" active="home"></bottom-nav>

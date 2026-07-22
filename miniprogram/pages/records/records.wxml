@@ -1,37 +1,27 @@
-<navigation-bar title="全部记录" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+<navigation-bar title="拾羽" back="{{false}}" color="#202420" background="#f3efe4"></navigation-bar>
 
 <view class="page-canvas records-page">
   <view class="records-heading">
     <view>
-      <text class="eyebrow">THE COMPLETE INDEX</text>
-      <text class="records-title display-serif">我的收藏册</text>
-    </view>
-    <view class="records-count">
-      <text class="records-count__number">{{totalCount}}</text>
-      <text class="records-count__label">ENTRIES</text>
+      <text class="records-title">全部记录</text>
+      <text class="records-count">{{totalCount}} 条</text>
     </view>
   </view>
 
   <view class="search-box">
-    <text class="search-box__mark">⌕</text>
-    <input
-      class="search-box__input"
-      value="{{keyword}}"
-      placeholder="搜索自己的记录"
-      placeholder-class="search-box__placeholder"
-      bindinput="handleSearch"
-    />
-    <text wx:if="{{keyword}}" class="search-box__clear" bindtap="clearFilters">清除</text>
+    <view class="search-icon"></view>
+    <input value="{{keyword}}" placeholder="输入关键词" placeholder-class="input-placeholder" bindinput="handleSearch" />
+    <text wx:if="{{keyword}}" bindtap="clearFilters">清除</text>
   </view>
 
   <scroll-view class="filter-scroll" scroll-x="true" show-scrollbar="{{false}}">
     <view class="filter-row">
       <view
-        class="filter-chip {{selectedCategory === item.key ? 'filter-chip--selected' : ''}}"
-        wx:for="{{categoryFilters}}"
+        class="filter-chip {{selectedType === item.key ? 'filter-chip--active' : ''}}"
+        wx:for="{{typeFilters}}"
         wx:key="key"
-        data-category="{{item.key}}"
-        bindtap="selectCategory"
+        data-type="{{item.key}}"
+        bindtap="selectType"
       >{{item.label}}</view>
     </view>
   </scroll-view>
@@ -39,7 +29,7 @@
   <scroll-view class="filter-scroll filter-scroll--status" scroll-x="true" show-scrollbar="{{false}}">
     <view class="filter-row">
       <view
-        class="status-chip {{selectedStatus === item.key ? 'status-chip--selected' : ''}}"
+        class="filter-chip filter-chip--quiet {{selectedStatus === item.key ? 'filter-chip--active' : ''}}"
         wx:for="{{statusFilters}}"
         wx:key="key"
         data-status="{{item.key}}"
@@ -48,49 +38,75 @@
     </view>
   </scroll-view>
 
-  <view class="index-label">
-    <text>按最近记录排列</text>
-    <text>{{records.length}} 条结果</text>
-  </view>
-
-  <view wx:if="{{records.length}}" class="record-index">
+  <view wx:if="{{entries.length}}" class="entry-list">
     <view
-      class="record-row"
-      wx:for="{{records}}"
+      class="entry-row {{item.type === 'todo' && item.completed ? 'entry-row--completed' : ''}}"
+      wx:for="{{entries}}"
       wx:key="id"
       data-id="{{item.id}}"
-      bindtap="openRecord"
+      bindtap="openEntry"
     >
-      <view class="record-row__cover {{item.accentClass}}">
-        <text class="record-row__edition">NO.{{item.editionIndex}}</text>
-        <text class="record-row__mark">{{item.categoryMark}}</text>
-      </view>
-      <view class="record-row__body">
-        <view class="record-row__topline">
-          <text>{{item.categoryLabel}}</text>
-          <text class="record-row__status">{{item.statusLabel}}</text>
-        </view>
-        <text class="record-row__title">{{item.title}}</text>
-        <text class="record-row__progress">{{item.progressText}}</text>
-        <view class="record-row__footer">
+      <view class="entry-mark">{{item.mark}}</view>
+      <view class="entry-body">
+        <text class="entry-content">{{item.content}}</text>
+        <text wx:if="{{item.detail}}" class="entry-detail">{{item.detail}}</text>
+        <view class="entry-meta">
+          <text>{{item.type === 'media' ? item.mediaCategoryLabel : item.typeLabel}}</text>
+          <text>{{item.statusLabel}}</text>
+          <text wx:if="{{item.progressText}}">{{item.progressText}}</text>
           <text>{{item.timeLabel}}</text>
-          <text>查看记录 →</text>
         </view>
       </view>
+      <text class="entry-arrow">›</text>
     </view>
   </view>
 
   <view wx:else class="empty-state">
-    <text class="empty-state__mark">∅</text>
-    <text class="empty-state__title display-serif">没有找到这条留痕</text>
-    <text class="empty-state__copy">换一个名称或清除筛选，也可以直接新建一条记录。</text>
-    <view class="empty-state__actions">
-      <button bindtap="clearFilters">清除筛选</button>
-      <button bindtap="openAdd">新建记录</button>
-    </view>
+    <text class="empty-state__title">没有找到记录</text>
+    <text>换个关键词，或者清除当前筛选。</text>
+    <button bindtap="clearFilters">清除筛选</button>
   </view>
 
-  <button class="floating-add" bindtap="openAdd" aria-label="新增记录">＋</button>
+  <view class="floating-add" bindtap="openAdd" aria-role="button" aria-label="新建记录">
+    <view class="plus-icon"></view>
+  </view>
+</view>
+
+<view wx:if="{{previewVisible && selectedEntry}}" class="preview-overlay" bindtap="closePreview">
+  <view class="preview-card" catchtap="preventClose">
+    <view class="preview-header">
+      <text class="preview-type">{{selectedEntry.type === 'media' ? selectedEntry.mediaCategoryLabel : selectedEntry.typeLabel}}</text>
+      <text class="preview-status">{{selectedEntry.statusLabel}}</text>
+    </view>
+    <view class="preview-body">
+      <view class="preview-copy">
+        <text class="preview-content {{selectedEntry.type === 'todo' && selectedEntry.completed ? 'preview-content--completed' : ''}}">{{selectedEntry.content}}</text>
+        <text wx:if="{{selectedEntry.detail}}" class="preview-detail">{{selectedEntry.detail}}</text>
+      </view>
+      <view wx:if="{{selectedEntry.type === 'media' && (selectedEntry.mediaCategory === 'anime' || selectedEntry.mediaCategory === 'kdrama')}}" class="preview-progress-panel {{selectedEntry.status !== 'active' ? 'preview-progress-panel--readonly' : ''}}">
+        <text class="preview-progress-label">当前集数</text>
+        <view class="preview-progress-value">
+          <text class="preview-progress-current">{{selectedEntry.currentProgress}}</text>
+          <text wx:if="{{selectedEntry.totalProgress > 0}}" class="preview-progress-total"> / {{selectedEntry.totalProgress}}</text>
+          <text class="preview-progress-unit">集</text>
+        </view>
+        <view
+          wx:if="{{selectedEntry.status === 'active'}}"
+          class="preview-progress-add"
+          bindtap="increasePreviewProgress"
+          aria-role="button"
+          aria-label="进度加一"
+        >+1</view>
+      </view>
+    </view>
+    <view class="preview-meta">
+      <text>{{selectedEntry.timeLabel}}</text>
+    </view>
+    <view class="preview-actions">
+      <view bindtap="closePreview">关闭</view>
+      <view bindtap="openSelectedEntry">查看详情</view>
+    </view>
+  </view>
 </view>
 
 <bottom-nav active="records"></bottom-nav>
