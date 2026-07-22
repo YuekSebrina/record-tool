@@ -1,0 +1,14 @@
+# Dependencies and generated packages
+node_modules/
+miniprogram_npm/
+dist/
+
+# Local WeChat DevTools settings
+project.private.config.json
+
+# Logs and editor/OS metadata
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
