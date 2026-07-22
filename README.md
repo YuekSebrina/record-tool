@@ -42,6 +42,14 @@
 
 ## 服务 API 文档
 
+### `GET /api/health`
+
+检查当前版本是否已经正常部署。
+
+```json
+{"code": 0, "data": {"service": "record-tool", "status": "ok"}}
+```
+
 ### `GET /api/search`
 
 搜索豆瓣条目。`q` 为关键词，`type` 支持 `book`、`anime`、`movie`、`series`。

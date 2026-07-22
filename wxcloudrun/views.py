@@ -82,6 +82,11 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/health', methods=['GET'])
+def health():
+    return make_succ_response({'service': 'record-tool', 'status': 'ok'})
+
+
 @app.route('/api/count', methods=['POST'])
 def count():
     """

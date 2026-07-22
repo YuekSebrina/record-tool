@@ -38,6 +38,11 @@ class ApiTestCase(unittest.TestCase):
         app.config['TESTING'] = True
         self.client = app.test_client()
 
+    def test_health(self):
+        response = self.client.get('/api/health')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['data']['status'], 'ok')
+
     @patch('wxcloudrun.views.fetch_douban')
     def test_search_normalizes_movie(self, fetch_douban):
         payload = [{
