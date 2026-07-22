@@ -1,8 +1,8 @@
-# wxcloudrun-flask
+# 拾羽收藏夹后端
 [![GitHub license](https://img.shields.io/github/license/WeixinCloud/wxcloudrun-express)](https://github.com/WeixinCloud/wxcloudrun-express)
 ![GitHub package.json dependency version (prod)](https://img.shields.io/badge/python-3.7.3-green)
 
-微信云托管 python Flask 框架模版，实现简单的计数器读写接口，使用云托管 MySQL 读写、记录计数值。
+为“拾羽”微信小程序提供豆瓣书籍、动漫、电影和剧集搜索，以及封面图片代理。现有计数器接口暂时保留，但收藏数据由小程序本地存储管理。
 
 ![](https://qcloudimg.tencent-cloud.cn/raw/be22992d297d1b9a1a5365e606276781.png)
 
@@ -41,6 +41,24 @@
 
 
 ## 服务 API 文档
+
+### `GET /api/search`
+
+搜索豆瓣条目。`q` 为关键词，`type` 支持 `book`、`anime`、`movie`、`series`。
+
+```text
+GET /api/search?q=霸王别姬&type=movie
+```
+
+返回统一字段：`id`、`category`、`title`、`subtitle`、`cover`、`year`、`author`、`episode`、`rating`、`description`、`sourceType`、`sourceUrl`。豆瓣 suggest 接口未提供的字段为空字符串。
+
+### `GET /api/image`
+
+代理豆瓣封面，`url` 必须是 HTTPS 的 `doubanio.com` 图片地址。
+
+```text
+GET /api/image?url=https%3A%2F%2Fimg1.doubanio.com%2Fview%2Fphoto%2Fs_ratio_poster%2Fpublic%2Fp2911205318.jpg
+```
 
 ### `GET /api/count`
 
