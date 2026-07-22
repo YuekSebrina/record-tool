@@ -1,28 +1,47 @@
-<!--index.wxml-->
-<navigation-bar title="Weixin" back="{{false}}" color="black" background="#FFF"></navigation-bar>
-<scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
+<navigation-bar title="云托管计数" back="{{false}}" color="#17211b" background="#f3efe4"></navigation-bar>
+
+<view class="page-shell">
+  <view class="eyebrow">WECHAT CLOUD RUN</view>
+  <view class="hero">
+    <text class="title">一次点击，写入云端</text>
+    <text class="subtitle">请求经微信专线发送到 flask-tddl 服务，并由云托管 MySQL 持久化。</text>
+  </view>
+
+  <view class="counter-card">
+    <view class="card-header">
+      <text class="card-label">当前计数</text>
+      <view class="status-dot status-dot--{{statusClass}}"></view>
     </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
+
+    <text class="count-value">{{hasCount ? count : '--'}}</text>
+    <text class="status-text">{{statusText}}</text>
+
+    <button
+      class="count-button"
+      bindtap="incrementCount"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      {{loading ? '请求中' : '计数 +1'}}
+    </button>
+
+    <view wx:if="{{errorMessage}}" class="error-box">
+      <text>{{errorMessage}}</text>
     </view>
   </view>
-</scroll-view>
+
+  <view class="service-info">
+    <view class="info-row">
+      <text class="info-label">环境</text>
+      <text class="info-value">prod-d8gf33lii77ef34ef</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">服务</text>
+      <text class="info-value">flask-tddl</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">接口</text>
+      <text class="info-value">POST /api/count</text>
+    </view>
+  </view>
+</view>
