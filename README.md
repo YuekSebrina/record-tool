@@ -5,6 +5,7 @@
 ## 当前功能
 
 - 按书籍、动漫、电影或剧集搜索豆瓣条目。
+- 首页展示豆瓣实时关注图书、热门动画、热门电影和热门剧集。
 - 展示标题、封面、年份、作者、副标题、集数和豆瓣来源链接等可用信息。
 - 一键保存到对应分类，自动避免同分类重复收藏。
 - 按四类查看本地收藏数量，支持列表与三列海报宫格布局。
@@ -46,6 +47,7 @@
 - 环境：`prod-d8gf33lii77ef34ef`
 - 服务：`flask-tddl`
 - `GET /api/health`
+- `GET /api/trending`
 - `GET /api/search?q=关键词&type=book|anime|movie|series`
 - `GET /api/detail?id=豆瓣条目ID&type=book|anime|movie|series`
 - `GET /api/image?url=豆瓣图片地址`

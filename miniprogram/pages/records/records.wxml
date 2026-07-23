@@ -1,3 +1,4 @@
+<page-meta page-style="{{editorVisible || detailVisible ? 'overflow: hidden;' : ''}}"></page-meta>
 <navigation-bar title="拾羽" back="{{false}}" color="#202124" background="#f5f5f5"></navigation-bar>
 
 <view class="page-canvas collection-page">

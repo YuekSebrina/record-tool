@@ -5,11 +5,7 @@
     "t-button": "tdesign-miniprogram/button/button",
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-image": "tdesign-miniprogram/image/image",
-    "t-search": "tdesign-miniprogram/search/search",
-    "t-segmented": "tdesign-miniprogram/segmented/segmented",
     "t-skeleton": "tdesign-miniprogram/skeleton/skeleton",
-    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
-    "t-tabs": "tdesign-miniprogram/tabs/tabs",
     "t-tag": "tdesign-miniprogram/tag/tag"
   }
 }

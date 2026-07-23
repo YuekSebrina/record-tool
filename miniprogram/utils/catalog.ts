@@ -106,6 +106,27 @@ export async function searchCatalog(keyword: string, category: FavoriteCategory)
   return response.data.data
 }
 
+export async function getTrendingCatalog(): Promise<CatalogItem[]> {
+  let response: CloudContainerResult<ApiResponse<CatalogItem[]>>
+  try {
+    response = await callContainer<ApiResponse<CatalogItem[]>>('/api/trending')
+  } catch (_error) {
+    throw new Error('暂时无法获取近期热门')
+  }
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error('暂时无法获取近期热门')
+  }
+  if (!response.data || response.data.code !== 0 || !Array.isArray(response.data.data)) {
+    throw new Error(response.data && response.data.errorMsg ? response.data.errorMsg : '热门内容数据无效')
+  }
+  const categories = new Set(response.data.data.map((item) => item.category))
+  if (response.data.data.length !== categoryOptions.length
+    || categoryOptions.some((item) => !categories.has(item.key))) {
+    throw new Error('热门内容数据不完整')
+  }
+  return response.data.data
+}
+
 export async function getCatalogDetail(
   id: string,
   category: FavoriteCategory,

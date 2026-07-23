@@ -2,45 +2,78 @@ import {
   CatalogItem,
   categoryOptions,
   FavoriteCategory,
+  FavoriteItem,
   getCatalogDetail,
   getDisplayCover,
+  getFavorites,
+  getTrendingCatalog,
   isFavorite,
   saveFavorite,
   searchCatalog,
   vibrateLight,
 } from '../../utils/catalog'
 
-type SearchType = 'media' | 'book'
+type SearchFilter = FavoriteCategory | 'all'
 
 interface SearchResultView extends CatalogItem {
+  resultKey: string
   displayCover: string
   favorited: boolean
+  categoryLabel: string
+  categoryMark: string
 }
 
-interface ValueEventDetail {
-  value: string | number
+interface RecentFavoriteView extends FavoriteItem {
+  displayCover: string
+  categoryLabel: string
+  categoryMark: string
 }
 
 let currentSearchId = 0
 let currentDetailId = 0
+let currentRecentId = 0
+let currentTrendingId = 0
+let keyboardHeightHandler: WechatMiniprogram.OnKeyboardHeightChangeCallback | null = null
 
 function getCategoryMark(category: FavoriteCategory): string {
   const option = categoryOptions.find((item) => item.key === category)
   return option ? option.mark : '藏'
 }
 
+function getCategoryLabel(category: FavoriteCategory): string {
+  const option = categoryOptions.find((item) => item.key === category)
+  return option ? option.label : ''
+}
+
+function toSearchResultView(item: CatalogItem): SearchResultView {
+  return {
+    ...item,
+    resultKey: `${item.category}-${item.id}`,
+    displayCover: '',
+    favorited: isFavorite(item.category, item.id),
+    categoryLabel: getCategoryLabel(item.category),
+    categoryMark: getCategoryMark(item.category),
+  }
+}
+
 Page({
   data: {
     keyword: '',
-    searchType: 'media' as SearchType,
-    selectedMediaCategory: 'movie' as FavoriteCategory,
-    selectedCategory: 'movie' as FavoriteCategory,
-    selectedCategoryMark: '影',
-    mediaCategories: [
-      { label: '电影', value: 'movie' },
-      { label: '动漫', value: 'anime' },
-      { label: '剧集', value: 'series' },
+    hasKeyword: false,
+    searchDockStyle: '',
+    searchFilter: 'all' as SearchFilter,
+    filterLabel: '全部',
+    searchPlaceholder: '搜索书籍 / 动漫 / 电影 / 剧集',
+    filterVisible: false,
+    filterOptions: [
+      { label: '全部', value: 'all', mark: '全' },
+      ...categoryOptions.map((item) => ({ label: item.label, value: item.key, mark: item.mark })),
     ],
+    recentFavorites: [] as RecentFavoriteView[],
+    trendingItems: [] as SearchResultView[],
+    trendingLoading: true,
+    trendingError: '',
+    trendingSkeletons: [1, 2, 3, 4],
     results: [] as SearchResultView[],
     loading: false,
     searched: false,
@@ -61,6 +94,11 @@ Page({
     ]],
   },
 
+  onLoad() {
+    keyboardHeightHandler = (result) => this.updateSearchDockForKeyboard(result.height)
+    wx.onKeyboardHeightChange(keyboardHeightHandler)
+  },
+
   onShow() {
     const selectedResult = this.data.selectedResult
       ? {
@@ -75,45 +113,160 @@ Page({
       })),
       selectedResult,
     })
+    this.loadRecentFavorites()
+    this.loadTrending()
   },
 
   onUnload() {
     currentSearchId += 1
     currentDetailId += 1
+    currentRecentId += 1
+    currentTrendingId += 1
+    if (keyboardHeightHandler) {
+      wx.offKeyboardHeightChange(keyboardHeightHandler)
+      keyboardHeightHandler = null
+    }
   },
 
   handleKeywordChange(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
-    this.setData({ keyword: event.detail.value })
+    const keyword = event.detail.value
+    this.setData({ keyword, hasKeyword: Boolean(keyword.trim()) })
   },
 
-  selectSearchType(event: WechatMiniprogram.CustomEvent<ValueEventDetail>) {
-    const searchType: SearchType = String(event.detail.value) === 'book' ? 'book' : 'media'
-    const selectedCategory: FavoriteCategory = searchType === 'book'
-      ? 'book'
-      : this.data.selectedMediaCategory
-    this.resetSearch(searchType, selectedCategory)
+  handleKeyboardHeightChange(event: WechatMiniprogram.CustomEvent<{ height: number }>) {
+    this.updateSearchDockForKeyboard(event.detail.height)
   },
 
-  selectMediaCategory(event: WechatMiniprogram.CustomEvent<ValueEventDetail>) {
-    const value = String(event.detail.value)
-    const selectedCategory: FavoriteCategory = value === 'anime' || value === 'series'
-      ? value
-      : 'movie'
-    this.setData({ selectedMediaCategory: selectedCategory })
-    this.resetSearch('media', selectedCategory)
+  handleSearchBlur() {
+    this.updateSearchDockForKeyboard(0)
   },
 
-  resetSearch(searchType: SearchType, selectedCategory: FavoriteCategory) {
+  updateSearchDockForKeyboard(height: number) {
+    const keyboardHeight = Math.max(0, Number(height) || 0)
+    this.setData({
+      searchDockStyle: keyboardHeight > 0
+        ? `bottom: calc(${keyboardHeight}px + 16rpx);`
+        : '',
+    })
+  },
+
+  clearKeyword() {
     currentSearchId += 1
     this.setData({
-      searchType,
-      selectedCategory,
-      selectedCategoryMark: getCategoryMark(selectedCategory),
+      keyword: '',
+      hasKeyword: false,
       results: [],
       loading: false,
       searched: false,
       errorMessage: '',
     })
+  },
+
+  openFilter() {
+    vibrateLight()
+    this.setData({ filterVisible: true })
+  },
+
+  closeFilter() {
+    this.setData({ filterVisible: false })
+  },
+
+  selectFilter(event: WechatMiniprogram.BaseEvent) {
+    const value = String(event.currentTarget.dataset.value)
+    const searchFilter: SearchFilter = value === 'book'
+      || value === 'anime'
+      || value === 'movie'
+      || value === 'series'
+      ? value
+      : 'all'
+    const option = this.data.filterOptions.find((item) => item.value === searchFilter)
+    vibrateLight()
+    this.setData({
+      searchFilter,
+      filterLabel: option ? option.label : '全部',
+      searchPlaceholder: searchFilter === 'all'
+        ? '搜索书籍 / 动漫 / 电影 / 剧集'
+        : `搜索${option ? option.label : '作品'}`,
+      filterVisible: false,
+    }, () => {
+      if (this.data.searched && this.data.hasKeyword) {
+        void this.runSearch()
+      }
+    })
+  },
+
+  preventFilterClose() {},
+
+  goToFavorites() {
+    vibrateLight()
+    wx.redirectTo({ url: '/pages/records/records' })
+  },
+
+  loadRecentFavorites() {
+    const recentId = ++currentRecentId
+    const recentFavorites: RecentFavoriteView[] = getFavorites().slice(0, 4).map((item) => ({
+      ...item,
+      displayCover: '',
+      categoryLabel: getCategoryLabel(item.category),
+      categoryMark: getCategoryMark(item.category),
+    }))
+    this.setData({ recentFavorites })
+    Promise.all(recentFavorites.map(async (item) => {
+      try {
+        return { favoriteId: item.favoriteId, displayCover: await getDisplayCover(item.cover) }
+      } catch (_error) {
+        return { favoriteId: item.favoriteId, displayCover: '' }
+      }
+    })).then((covers) => {
+      if (recentId !== currentRecentId) {
+        return
+      }
+      const coverMap = new Map(covers.map((item) => [item.favoriteId, item.displayCover]))
+      this.setData({
+        recentFavorites: this.data.recentFavorites.map((item) => ({
+          ...item,
+          displayCover: coverMap.get(item.favoriteId) || item.displayCover,
+        })),
+      })
+    })
+  },
+
+  async loadTrending() {
+    const trendingId = ++currentTrendingId
+    this.setData({ trendingLoading: true, trendingError: '' })
+    try {
+      const items = await getTrendingCatalog()
+      if (trendingId !== currentTrendingId) {
+        return
+      }
+      const trendingItems = items.map(toSearchResultView)
+      this.setData({ trendingItems, trendingLoading: false })
+      const hydrated = await Promise.all(trendingItems.map(async (item) => {
+        try {
+          return { resultKey: item.resultKey, displayCover: await getDisplayCover(item.cover) }
+        } catch (_error) {
+          return { resultKey: item.resultKey, displayCover: '' }
+        }
+      }))
+      if (trendingId !== currentTrendingId) {
+        return
+      }
+      const coverMap = new Map(hydrated.map((item) => [item.resultKey, item.displayCover]))
+      this.setData({
+        trendingItems: this.data.trendingItems.map((item) => ({
+          ...item,
+          displayCover: coverMap.get(item.resultKey) || item.displayCover,
+        })),
+      })
+    } catch (_error) {
+      if (trendingId === currentTrendingId) {
+        this.setData({
+          trendingItems: [],
+          trendingLoading: false,
+          trendingError: '热门内容暂时无法加载，点击重试',
+        })
+      }
+    }
   },
 
   async runSearch() {
@@ -126,16 +279,28 @@ Page({
     const searchId = ++currentSearchId
     this.setData({ loading: true, searched: true, errorMessage: '', results: [] })
     try {
-      const items = await searchCatalog(keyword, this.data.selectedCategory)
+      const categories = this.data.searchFilter === 'all'
+        ? categoryOptions.map((item) => item.key)
+        : [this.data.searchFilter]
+      const responses = await Promise.all(categories.map(async (category) => {
+        try {
+          return { success: true, items: await searchCatalog(keyword, category), error: null }
+        } catch (error) {
+          return { success: false, items: [] as CatalogItem[], error }
+        }
+      }))
       if (searchId !== currentSearchId) {
         return
       }
-      const results: SearchResultView[] = items.map((item) => ({
-        ...item,
-        displayCover: '',
-        favorited: isFavorite(item.category, item.id),
-      }))
+      if (!responses.some((response) => response.success)) {
+        const error = responses[0] && responses[0].error
+        throw error instanceof Error ? error : new Error('搜索失败，请稍后重试')
+      }
+      const results = responses.flatMap((response) => response.items).map(toSearchResultView)
       this.setData({ results, loading: false })
+      if (responses.some((response) => !response.success)) {
+        wx.showToast({ title: '部分分类暂时不可用', icon: 'none' })
+      }
       const hydrated = await Promise.all(results.map(async (item) => {
         try {
           return { ...item, displayCover: await getDisplayCover(item.cover) }
@@ -144,11 +309,11 @@ Page({
         }
       }))
       if (searchId === currentSearchId) {
-        const covers = new Map(hydrated.map((item) => [item.id, item.displayCover]))
+        const covers = new Map(hydrated.map((item) => [item.resultKey, item.displayCover]))
         this.setData({
           results: this.data.results.map((item) => ({
             ...item,
-            displayCover: covers.get(item.id) || item.displayCover,
+            displayCover: covers.get(item.resultKey) || item.displayCover,
           })),
         })
       }
@@ -163,30 +328,47 @@ Page({
   },
 
   addFavorite(event: WechatMiniprogram.BaseEvent) {
-    const { id } = event.currentTarget.dataset as { id: string }
-    const item = this.data.results.find((result) => result.id === id)
+    const { key } = event.currentTarget.dataset as { key: string }
+    const item = this.data.results.find((result) => result.resultKey === key)
     if (!item || item.favorited) {
       return
     }
     saveFavorite(item)
     vibrateLight()
     this.setData({
-      results: this.data.results.map((result) => result.id === id
+      results: this.data.results.map((result) => result.resultKey === key
         ? { ...result, favorited: true }
         : result),
-      selectedResult: this.data.selectedResult && this.data.selectedResult.id === id
+      selectedResult: this.data.selectedResult && this.data.selectedResult.resultKey === key
         ? { ...this.data.selectedResult, favorited: true }
         : this.data.selectedResult,
+      trendingItems: this.data.trendingItems.map((result) => result.resultKey === key
+        ? { ...result, favorited: true }
+        : result),
     })
+    this.loadRecentFavorites()
     wx.showToast({ title: '已收藏', icon: 'success' })
   },
 
   async openResult(event: WechatMiniprogram.BaseEvent) {
-    const { id } = event.currentTarget.dataset as { id: string }
-    const result = this.data.results.find((item) => item.id === id)
+    const { key } = event.currentTarget.dataset as { key: string }
+    const result = this.data.results.find((item) => item.resultKey === key)
     if (!result) {
       return
     }
+    await this.showResultDetail(result)
+  },
+
+  async openTrending(event: WechatMiniprogram.BaseEvent) {
+    const { key } = event.currentTarget.dataset as { key: string }
+    const result = this.data.trendingItems.find((item) => item.resultKey === key)
+    if (!result) {
+      return
+    }
+    await this.showResultDetail(result)
+  },
+
+  async showResultDetail(result: SearchResultView) {
     const detailId = ++currentDetailId
     vibrateLight()
     this.setData({
@@ -214,7 +396,10 @@ Page({
         detailGenres: detail.genres.join(' / '),
         detailCreators: detail.creators.join(' / '),
         selectedResult: updatedResult,
-        results: this.data.results.map((item) => item.id === id ? updatedResult : item),
+        results: this.data.results.map((item) => item.resultKey === result.resultKey ? updatedResult : item),
+        trendingItems: this.data.trendingItems.map((item) => item.resultKey === result.resultKey
+          ? updatedResult
+          : item),
       })
     } catch (error) {
       if (detailId === currentDetailId) {
@@ -242,10 +427,14 @@ Page({
     vibrateLight()
     this.setData({
       selectedResult: { ...item, favorited: true },
-      results: this.data.results.map((result) => result.id === item.id
+      results: this.data.results.map((result) => result.resultKey === item.resultKey
+        ? { ...result, favorited: true }
+        : result),
+      trendingItems: this.data.trendingItems.map((result) => result.resultKey === item.resultKey
         ? { ...result, favorited: true }
         : result),
     })
+    this.loadRecentFavorites()
     wx.showToast({ title: '已收藏', icon: 'success' })
   },
 })
