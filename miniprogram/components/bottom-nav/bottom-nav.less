@@ -7,8 +7,9 @@
   display: flex;
   height: calc(100rpx + env(safe-area-inset-bottom));
   padding: 0 70rpx env(safe-area-inset-bottom);
-  border-top: 2rpx solid #e6e9e4;
-  background: rgba(255, 255, 255, 0.97);
+  border-top: 2rpx solid #eeeeee;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -4rpx 18rpx rgba(0, 0, 0, 0.04);
 }
 
 .nav-item {
@@ -19,7 +20,7 @@
   justify-content: center;
   gap: 5rpx;
   color: #929892;
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 
 .nav-icon {
@@ -34,26 +35,24 @@
   mask-size: contain;
 }
 
-.nav-icon--feather {
-  width: 36rpx;
-  height: 42rpx;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 190'%3E%3Cg fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 178h142'/%3E%3Cpath d='M8 178c5-20 12-38 18-54C40 74 79 25 126 10c-3 28-6 51-13 72L91 92l20-6c-4 18-9 30-21 38l-20 5 19 4c-16 11-35 20-51 12'/%3E%3Cpath d='M8 178c24-48 55-98 86-130L38 145'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 190'%3E%3Cg fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 178h142'/%3E%3Cpath d='M8 178c5-20 12-38 18-54C40 74 79 25 126 10c-3 28-6 51-13 72L91 92l20-6c-4 18-9 30-21 38l-20 5 19 4c-16 11-35 20-51 12'/%3E%3Cpath d='M8 178c24-48 55-98 86-130L38 145'/%3E%3C/g%3E%3C/svg%3E");
+.nav-icon--search {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round'%3E%3Ccircle cx='27' cy='27' r='17'/%3E%3Cpath d='m40 40 14 14'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23000' stroke-width='5' stroke-linecap='round'%3E%3Ccircle cx='27' cy='27' r='17'/%3E%3Cpath d='m40 40 14 14'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-.nav-icon--list {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='%23000'%3E%3Ccircle cx='13' cy='17' r='3'/%3E%3Ccircle cx='13' cy='32' r='3'/%3E%3Ccircle cx='13' cy='47' r='3'/%3E%3Crect x='22' y='14.5' width='30' height='5' rx='2.5'/%3E%3Crect x='22' y='29.5' width='30' height='5' rx='2.5'/%3E%3Crect x='22' y='44.5' width='30' height='5' rx='2.5'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='%23000'%3E%3Ccircle cx='13' cy='17' r='3'/%3E%3Ccircle cx='13' cy='32' r='3'/%3E%3Ccircle cx='13' cy='47' r='3'/%3E%3Crect x='22' y='14.5' width='30' height='5' rx='2.5'/%3E%3Crect x='22' y='29.5' width='30' height='5' rx='2.5'/%3E%3Crect x='22' y='44.5' width='30' height='5' rx='2.5'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.nav-icon--profile {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'%3E%3Ccircle cx='32' cy='21' r='13'/%3E%3Cpath d='M10 56c1-14 10-23 22-23s21 9 22 23'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round'%3E%3Ccircle cx='32' cy='21' r='13'/%3E%3Cpath d='M10 56c1-14 10-23 22-23s21 9 22 23'/%3E%3C/g%3E%3C/svg%3E");
+.nav-icon--heart {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 55S8 41 8 23C8 12 21 7 32 18 43 7 56 12 56 23c0 18-24 32-24 32Z' fill='none' stroke='%23000' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 55S8 41 8 23C8 12 21 7 32 18 43 7 56 12 56 23c0 18-24 32-24 32Z' fill='none' stroke='%23000' stroke-width='5' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .nav-item--active {
-  color: #202420;
+  color: #07c160;
   font-weight: 700;
+}
+
+.nav-item--pressed {
+  opacity: 0.58;
+  transform: scale(0.96);
 }
 
 @media (min-width: 700px) {

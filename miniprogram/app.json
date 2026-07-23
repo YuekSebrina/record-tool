@@ -1,10 +1,7 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/add/add",
-    "pages/records/records",
-    "pages/detail/detail",
-    "pages/profile/profile"
+    "pages/records/records"
   ],
   "window": {
     "navigationBarTitleText": "拾羽",

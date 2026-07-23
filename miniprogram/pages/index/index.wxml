@@ -1,142 +1,147 @@
-<navigation-bar title="拾羽" back="{{false}}" color="#202420" background="#f3efe4"></navigation-bar>
+<navigation-bar title="拾羽" back="{{false}}" color="#202124" background="#f5f5f5"></navigation-bar>
 
-<view class="page-canvas home-page {{layoutScrollable ? 'home-page--scrolling' : ''}}">
+<view class="page-canvas search-page">
   <view class="page-heading">
-    <text class="page-heading__title">记点什么</text>
-    <text class="page-heading__date">{{dateLabel}}</text>
+    <text class="page-title">搜索收藏</text>
+    <text class="page-description">从豆瓣找到喜欢的书和影视作品</text>
   </view>
 
-  <view class="composer" style="min-height: {{composerMinHeight}}px">
-    <view class="type-tabs">
-      <view
-        class="type-tab {{selectedType === item.key ? 'type-tab--active' : ''}}"
-        wx:for="{{typeOptions}}"
-        wx:key="key"
-        data-type="{{item.key}}"
-        bindtap="selectType"
-      >{{item.label}}</view>
+  <view class="search-panel">
+    <t-tabs value="{{searchType}}" theme="tag" space-evenly bind:change="selectSearchType">
+      <t-tab-panel value="media" label="影视"></t-tab-panel>
+      <t-tab-panel value="book" label="图书"></t-tab-panel>
+    </t-tabs>
+
+    <view wx:if="{{searchType === 'media'}}" class="media-segmented">
+      <t-segmented
+        block
+        value="{{selectedMediaCategory}}"
+        options="{{mediaCategories}}"
+        bind:change="selectMediaCategory"
+      ></t-segmented>
     </view>
 
-    <textarea
-      class="composer-input"
-      value="{{draft}}"
-      placeholder="{{placeholder}}"
-      placeholder-class="composer-input__placeholder"
-      maxlength="500"
-      auto-height="true"
-      bindinput="handleDraftInput"
-    ></textarea>
-
-    <view wx:if="{{selectedType === 'media'}}" class="media-options">
-      <view class="option-row">
-        <view
-          class="option-chip {{selectedMediaCategory === item.key ? 'option-chip--active' : ''}}"
-          wx:for="{{mediaCategories}}"
-          wx:key="key"
-          data-category="{{item.key}}"
-          bindtap="selectMediaCategory"
-        >{{item.label}}</view>
-      </view>
-      <view class="option-row option-row--status">
-        <view
-          class="option-chip option-chip--quiet {{selectedMediaStatus === item.key ? 'option-chip--active' : ''}}"
-          wx:for="{{mediaStatusOptions}}"
-          wx:key="key"
-          data-status="{{item.key}}"
-          bindtap="selectMediaStatus"
-        >{{item.label}}</view>
-      </view>
-    </view>
-
-    <view class="composer-footer">
-      <text class="more-options" bindtap="openMoreOptions">更多选项</text>
-      <button class="save-button" disabled="{{!draft}}" bindtap="saveQuickEntry">保存</button>
+    <view class="search-control">
+      <t-search
+        value="{{keyword}}"
+        action="搜索"
+        clearable
+        shape="round"
+        placeholder="输入作品名称"
+        confirm-type="search"
+        bind:change="handleKeywordChange"
+        bind:submit="runSearch"
+        bind:action-click="runSearch"
+      ></t-search>
     </view>
   </view>
 
-  <view class="section-heading">
-    <text>最近记录</text>
-    <text bindtap="openAll">查看全部</text>
+  <view wx:if="{{loading}}" class="skeleton-list">
+    <view class="result-item skeleton-item" wx:for="{{skeletonItems}}" wx:key="*this">
+      <t-skeleton loading row-col="{{skeletonRows}}" animation="gradient"></t-skeleton>
+    </view>
   </view>
 
-  <view wx:if="{{entries.length}}" class="entry-list recent-content">
-    <view
-      class="entry-row {{item.type === 'todo' && item.completed ? 'entry-row--completed' : ''}}"
-      wx:for="{{entries}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="openEntry"
-    >
-      <view
-        wx:if="{{item.type === 'todo'}}"
-        class="todo-check {{item.completed ? 'todo-check--completed' : ''}}"
-        data-id="{{item.id}}"
-        catchtap="toggleTodo"
-      >{{item.completed ? '✓' : ''}}</view>
-      <view wx:else class="entry-mark">{{item.mark}}</view>
+  <view wx:elif="{{errorMessage}}" class="empty-state empty-state--error">
+    <t-icon name="error-circle" size="72rpx" color="#d54941"></t-icon>
+    <text class="empty-state__title">搜索没有完成</text>
+    <text>{{errorMessage}}</text>
+    <t-button theme="primary" shape="round" size="small" bind:tap="runSearch">重新搜索</t-button>
+  </view>
 
-      <view class="entry-content">
-        <text class="entry-text">{{item.content}}</text>
-        <view class="entry-meta">
-          <text>{{item.type === 'media' ? item.mediaCategoryLabel : item.typeLabel}}</text>
-          <text>{{item.statusLabel}}</text>
-          <text>{{item.progressText}}</text>
-          <text>{{item.timeLabel}}</text>
+  <view wx:elif="{{results.length}}" class="result-section">
+    <view class="section-heading">
+      <text>搜索结果</text>
+      <text>{{results.length}} 个匹配</text>
+    </view>
+    <view class="result-list">
+      <view class="result-item" wx:for="{{results}}" wx:key="id" data-id="{{item.id}}" bindtap="openResult">
+        <view class="result-cover">
+          <t-image
+            wx:if="{{item.displayCover}}"
+            src="{{item.displayCover}}"
+            width="140rpx"
+            height="190rpx"
+            shape="round"
+            mode="aspectFill"
+            lazy
+          ></t-image>
+          <text wx:else>{{selectedCategoryMark}}</text>
         </view>
+        <view class="result-info">
+          <text class="result-title">{{item.title}}</text>
+          <text wx:if="{{item.subtitle && item.subtitle !== item.title}}" class="result-subtitle">{{item.subtitle}}</text>
+          <view class="result-meta">
+            <t-tag wx:if="{{item.year}}" size="small" theme="default" variant="light">{{item.year}}</t-tag>
+            <text wx:if="{{item.author}}">{{item.author}}</text>
+            <text wx:if="{{item.episode}}">{{item.episode}}</text>
+          </view>
+        </view>
+        <button
+          class="collect-button {{item.favorited ? 'collect-button--saved' : ''}}"
+          disabled="{{item.favorited}}"
+          data-id="{{item.id}}"
+          catchtap="addFavorite"
+        >{{item.favorited ? '已收藏' : '+ 收藏'}}</button>
       </view>
-
-      <view
-        wx:if="{{item.type === 'media' && item.status === 'active' && (item.mediaCategory === 'anime' || item.mediaCategory === 'kdrama')}}"
-        class="small-action"
-        data-id="{{item.id}}"
-        catchtap="increaseProgress"
-        aria-role="button"
-        aria-label="进度加一"
-      >+1</view>
     </view>
   </view>
 
-  <view wx:else class="empty-state recent-content">
-    <text>还没有记录</text>
-    <text>从上面的输入框开始就可以。</text>
+  <view wx:elif="{{searched}}" class="empty-state">
+    <t-icon name="search" size="76rpx" color="#b2b2b2"></t-icon>
+    <text class="empty-state__title">没有找到相关作品</text>
+    <text>试试简称、原名或更少的关键词</text>
+  </view>
+
+  <view wx:else class="search-guide">
+    <view class="guide-icon"><t-icon name="heart" size="50rpx" color="#07c160"></t-icon></view>
+    <text>输入名称，开始建立你的私人收藏</text>
   </view>
 </view>
 
-<view wx:if="{{previewVisible && selectedEntry}}" class="preview-overlay" bindtap="closePreview">
-  <view class="preview-card" catchtap="preventClose">
-    <view class="preview-header">
-      <text class="preview-type">{{selectedEntry.type === 'media' ? selectedEntry.mediaCategoryLabel : selectedEntry.typeLabel}}</text>
-      <text class="preview-status">{{selectedEntry.statusLabel}}</text>
-    </view>
-    <view class="preview-body">
-      <view class="preview-copy">
-        <text class="preview-content {{selectedEntry.type === 'todo' && selectedEntry.completed ? 'preview-content--completed' : ''}}">{{selectedEntry.content}}</text>
-        <text wx:if="{{selectedEntry.detail}}" class="preview-detail">{{selectedEntry.detail}}</text>
+<view wx:if="{{detailVisible && selectedResult}}" class="detail-overlay" bindtap="closeDetail">
+  <view class="detail-card" catchtap="preventDetailClose">
+    <view class="detail-header">
+      <view class="detail-cover">
+        <t-image
+          wx:if="{{selectedResult.displayCover}}"
+          src="{{selectedResult.displayCover}}"
+          width="176rpx"
+          height="238rpx"
+          shape="round"
+          mode="aspectFill"
+        ></t-image>
+        <text wx:else>{{selectedCategoryMark}}</text>
       </view>
-      <view wx:if="{{selectedEntry.type === 'media' && (selectedEntry.mediaCategory === 'anime' || selectedEntry.mediaCategory === 'kdrama')}}" class="preview-progress-panel {{selectedEntry.status !== 'active' ? 'preview-progress-panel--readonly' : ''}}">
-        <text class="preview-progress-label">当前集数</text>
-        <view class="preview-progress-value">
-          <text class="preview-progress-current">{{selectedEntry.currentProgress}}</text>
-          <text wx:if="{{selectedEntry.totalProgress > 0}}" class="preview-progress-total"> / {{selectedEntry.totalProgress}}</text>
-          <text class="preview-progress-unit">集</text>
+      <view class="detail-heading">
+        <text class="detail-title">{{selectedResult.title}}</text>
+        <text wx:if="{{selectedResult.subtitle && selectedResult.subtitle !== selectedResult.title}}" class="detail-subtitle">{{selectedResult.subtitle}}</text>
+        <view class="detail-meta">
+          <t-tag wx:if="{{selectedResult.year}}" size="small" variant="light">{{selectedResult.year}}</t-tag>
+          <text wx:if="{{selectedResult.rating}}">豆瓣 {{selectedResult.rating}}</text>
+          <text wx:if="{{selectedResult.author}}">{{selectedResult.author}}</text>
         </view>
-        <view
-          wx:if="{{selectedEntry.status === 'active'}}"
-          class="preview-progress-add"
-          bindtap="increasePreviewProgress"
-          aria-role="button"
-          aria-label="进度加一"
-        >+1</view>
+        <text wx:if="{{detailGenres}}" class="detail-genres">{{detailGenres}}</text>
+        <text wx:if="{{detailCreators}}" class="detail-genres">{{detailCreators}}</text>
       </view>
+      <view class="detail-close" bindtap="closeDetail"><t-icon name="close" size="34rpx"></t-icon></view>
     </view>
-    <view class="preview-meta">
-      <text>{{selectedEntry.timeLabel}}</text>
+
+    <view class="detail-body">
+      <text class="detail-label">简介</text>
+      <view wx:if="{{detailLoading}}" class="detail-loading">
+        <t-skeleton loading theme="paragraph" animation="gradient"></t-skeleton>
+      </view>
+      <text wx:elif="{{selectedResult.description}}" class="detail-description">{{selectedResult.description}}</text>
+      <text wx:else class="detail-empty">{{detailError || '暂无简介'}}</text>
     </view>
-    <view class="preview-actions">
-      <view bindtap="closePreview">关闭</view>
-      <view bindtap="openSelectedEntry">查看详情</view>
-    </view>
+
+    <button
+      class="detail-collect {{selectedResult.favorited ? 'detail-collect--saved' : ''}}"
+      disabled="{{selectedResult.favorited || detailLoading}}"
+      bindtap="addSelectedFavorite"
+    >{{selectedResult.favorited ? '已收藏' : detailLoading ? '加载详情中' : '+ 加入收藏'}}</button>
   </view>
 </view>
 
-<bottom-nav id="home-bottom-nav" active="home"></bottom-nav>
+<bottom-nav active="search"></bottom-nav>

@@ -1,112 +1,262 @@
-<navigation-bar title="拾羽" back="{{false}}" color="#202420" background="#f3efe4"></navigation-bar>
+<navigation-bar title="拾羽" back="{{false}}" color="#202124" background="#f5f5f5"></navigation-bar>
 
-<view class="page-canvas records-page">
-  <view class="records-heading">
+<view class="page-canvas collection-page">
+  <view class="collection-heading">
     <view>
-      <text class="records-title">全部记录</text>
-      <text class="records-count">{{totalCount}} 条</text>
+      <text class="collection-title">我的收藏</text>
+      <text class="collection-description">共 {{totalCount}} 部作品</text>
+    </view>
+    <view class="layout-switch">
+      <t-segmented value="{{layout}}" options="{{layoutOptions}}" bind:change="switchLayout"></t-segmented>
     </view>
   </view>
 
-  <view class="search-box">
-    <view class="search-icon"></view>
-    <input value="{{keyword}}" placeholder="输入关键词" placeholder-class="input-placeholder" bindinput="handleSearch" />
-    <text wx:if="{{keyword}}" bindtap="clearFilters">清除</text>
+  <view class="category-tabs">
+    <t-tabs value="{{selectedCategory}}" theme="tag" bind:change="selectCategory">
+      <t-tab-panel
+        wx:for="{{categories}}"
+        wx:key="key"
+        value="{{item.key}}"
+        label="{{item.tabLabel}}"
+      ></t-tab-panel>
+    </t-tabs>
   </view>
 
-  <scroll-view class="filter-scroll" scroll-x="true" show-scrollbar="{{false}}">
-    <view class="filter-row">
-      <view
-        class="filter-chip {{selectedType === item.key ? 'filter-chip--active' : ''}}"
-        wx:for="{{typeFilters}}"
-        wx:key="key"
-        data-type="{{item.key}}"
-        bindtap="selectType"
-      >{{item.label}}</view>
-    </view>
-  </scroll-view>
+  <view wx:if="{{favorites.length && layout === 'list'}}" class="favorite-list">
+    <view class="favorite-row" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openEditor">
+      <view class="list-cover">
+        <t-image
+          wx:if="{{item.displayCover}}"
+          src="{{item.displayCover}}"
+          width="140rpx"
+          height="190rpx"
+          shape="round"
+          mode="aspectFill"
+          lazy
+        ></t-image>
+        <text wx:else>{{selectedCategoryMark}}</text>
+      </view>
 
-  <scroll-view class="filter-scroll filter-scroll--status" scroll-x="true" show-scrollbar="{{false}}">
-    <view class="filter-row">
-      <view
-        class="filter-chip filter-chip--quiet {{selectedStatus === item.key ? 'filter-chip--active' : ''}}"
-        wx:for="{{statusFilters}}"
-        wx:key="key"
-        data-status="{{item.key}}"
-        bindtap="selectStatus"
-      >{{item.label}}</view>
-    </view>
-  </scroll-view>
+      <view class="favorite-info">
+        <view class="favorite-title-row">
+          <text class="favorite-title">{{item.title}}</text>
+          <t-tag wx:if="{{item.year}}" size="small" variant="light">{{item.year}}</t-tag>
+          <t-tag size="small" theme="success" variant="light">{{item.statusLabel}}</t-tag>
+        </view>
+        <text wx:if="{{item.author}}" class="favorite-subtitle">{{item.author}}</text>
 
-  <view wx:if="{{entries.length}}" class="entry-list">
-    <view
-      class="entry-row {{item.type === 'todo' && item.completed ? 'entry-row--completed' : ''}}"
-      wx:for="{{entries}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="openEntry"
-    >
-      <view class="entry-mark">{{item.mark}}</view>
-      <view class="entry-body">
-        <text class="entry-content">{{item.content}}</text>
-        <text wx:if="{{item.detail}}" class="entry-detail">{{item.detail}}</text>
-        <view class="entry-meta">
-          <text>{{item.type === 'media' ? item.mediaCategoryLabel : item.typeLabel}}</text>
-          <text>{{item.statusLabel}}</text>
-          <text wx:if="{{item.progressText}}">{{item.progressText}}</text>
-          <text>{{item.timeLabel}}</text>
+        <view class="rating-row" catchtap="preventClose">
+          <t-rate
+            value="{{item.userRating}}"
+            count="5"
+            size="36rpx"
+            gap="5rpx"
+            color="#f4b740"
+            data-id="{{item.favoriteId}}"
+            bind:change="changeRating"
+          ></t-rate>
+          <text>{{item.userRating ? item.userRating + ' 分' : '未评分'}}</text>
+        </view>
+
+        <view wx:if="{{supportsProgress}}" class="progress-summary">
+          <view class="progress-copy">
+            <text>{{item.currentProgress}} / {{item.totalProgress || '--'}} {{progressUnit}}</text>
+            <text>{{item.progressPercentage}}%</text>
+          </view>
+          <t-progress
+            percentage="{{item.progressPercentage}}"
+            label="{{false}}"
+            color="#07c160"
+            track-color="#ededed"
+            stroke-width="8rpx"
+          ></t-progress>
+        </view>
+
+        <view class="row-actions">
+          <text data-id="{{item.favoriteId}}" catchtap="openEditor">{{supportsProgress ? '状态、评分与进度' : '状态与评分'}}</text>
+          <text data-id="{{item.favoriteId}}" catchtap="openFavoriteDetail">查看简介</text>
+          <text
+            class="remove-action"
+            data-id="{{item.favoriteId}}"
+            data-title="{{item.title}}"
+            catchtap="removeFavorite"
+          >移除</text>
         </view>
       </view>
-      <text class="entry-arrow">›</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{favorites.length && layout === 'grid'}}" class="favorite-grid">
+    <view class="poster-card" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openEditor">
+      <view class="poster-cover">
+        <image
+          wx:if="{{item.displayCover}}"
+          src="{{item.displayCover}}"
+          class="poster-image"
+          mode="aspectFill"
+          lazy-load="{{true}}"
+          data-id="{{item.favoriteId}}"
+          binderror="handleCoverError"
+        ></image>
+        <text wx:else>{{selectedCategoryMark}}</text>
+        <t-tag class="poster-type" size="small" theme="default" variant="dark">{{selectedCategoryLabel}}</t-tag>
+        <view
+          class="poster-remove"
+          data-id="{{item.favoriteId}}"
+          data-title="{{item.title}}"
+          catchtap="removeFavorite"
+        ><t-icon name="close" size="24rpx" color="#fff"></t-icon></view>
+        <view wx:if="{{supportsProgress && item.progressPercentage}}" class="poster-progress">{{item.progressPercentage}}%</view>
+        <view class="poster-detail" data-id="{{item.favoriteId}}" catchtap="openFavoriteDetail">简介</view>
+      </view>
+      <view class="poster-info">
+        <text class="poster-title">{{item.title}}</text>
+        <view class="poster-meta">
+          <text>{{item.statusLabel}}</text>
+          <text class="poster-rating">★ {{item.userRating || '未评'}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
   <view wx:else class="empty-state">
-    <text class="empty-state__title">没有找到记录</text>
-    <text>换个关键词，或者清除当前筛选。</text>
-    <button bindtap="clearFilters">清除筛选</button>
-  </view>
-
-  <view class="floating-add" bindtap="openAdd" aria-role="button" aria-label="新建记录">
-    <view class="plus-icon"></view>
+    <view class="empty-icon"><t-icon name="heart" size="52rpx" color="#07c160"></t-icon></view>
+    <text class="empty-title">这里还没有收藏</text>
+    <text>去搜索页找到喜欢的{{selectedCategoryLabel}}</text>
   </view>
 </view>
 
-<view wx:if="{{previewVisible && selectedEntry}}" class="preview-overlay" bindtap="closePreview">
-  <view class="preview-card" catchtap="preventClose">
-    <view class="preview-header">
-      <text class="preview-type">{{selectedEntry.type === 'media' ? selectedEntry.mediaCategoryLabel : selectedEntry.typeLabel}}</text>
-      <text class="preview-status">{{selectedEntry.statusLabel}}</text>
-    </view>
-    <view class="preview-body">
-      <view class="preview-copy">
-        <text class="preview-content {{selectedEntry.type === 'todo' && selectedEntry.completed ? 'preview-content--completed' : ''}}">{{selectedEntry.content}}</text>
-        <text wx:if="{{selectedEntry.detail}}" class="preview-detail">{{selectedEntry.detail}}</text>
+<view wx:if="{{editorVisible && editingFavorite}}" class="editor-overlay" bindtap="closeEditor">
+  <view class="editor-card" catchtap="preventClose">
+    <view class="editor-header">
+      <view>
+        <text class="editor-title">{{editingFavorite.title}}</text>
+        <text class="editor-subtitle">{{supportsProgress ? '评分与进度' : '我的评分'}}</text>
       </view>
-      <view wx:if="{{selectedEntry.type === 'media' && (selectedEntry.mediaCategory === 'anime' || selectedEntry.mediaCategory === 'kdrama')}}" class="preview-progress-panel {{selectedEntry.status !== 'active' ? 'preview-progress-panel--readonly' : ''}}">
-        <text class="preview-progress-label">当前集数</text>
-        <view class="preview-progress-value">
-          <text class="preview-progress-current">{{selectedEntry.currentProgress}}</text>
-          <text wx:if="{{selectedEntry.totalProgress > 0}}" class="preview-progress-total"> / {{selectedEntry.totalProgress}}</text>
-          <text class="preview-progress-unit">集</text>
+      <view class="editor-close" bindtap="closeEditor"><t-icon name="close" size="36rpx"></t-icon></view>
+    </view>
+
+    <view class="editor-section">
+      <text class="editor-label">阅读/观看状态</text>
+      <view class="editor-status">
+        <view
+          wx:for="{{statusOptions}}"
+          wx:key="value"
+          class="status-option {{editingStatus === item.value ? 'status-option--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="changeEditorStatus"
+        >{{item.label}}</view>
+      </view>
+    </view>
+
+    <view class="editor-section">
+      <text class="editor-label">我的评分</text>
+      <view class="editor-rate">
+        <t-rate
+          value="{{editingRating}}"
+          count="5"
+          size="54rpx"
+          gap="12rpx"
+          color="#f4b740"
+          bind:change="changeEditorRating"
+        ></t-rate>
+        <text>{{editingRating ? editingRating + ' 分' : '点击星星评分'}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{supportsProgress}}" class="editor-section progress-editor-section">
+      <view class="progress-heading">
+        <text class="editor-label">{{selectedCategory === 'book' ? '阅读进度' : '观看进度'}}</text>
+        <view class="progress-total-inline">
+          <text>共</text>
+          <input
+            class="progress-total-input"
+            type="number"
+            value="{{editingTotalProgress}}"
+            bindinput="changeTotalProgress"
+          />
+          <text>{{progressUnit}}</text>
+        </view>
+      </view>
+      <view class="progress-primary-control">
+        <view
+          class="progress-stepper-button {{editingCurrentProgress <= 0 ? 'progress-stepper-button--disabled' : ''}}"
+          data-delta="-1"
+          bindtap="adjustCurrentProgress"
+        >-</view>
+        <view class="progress-current-value">
+          <input
+            class="progress-number-input"
+            type="number"
+            value="{{editingCurrentProgress}}"
+            bindinput="changeCurrentProgress"
+          />
+          <text>{{progressUnit}}</text>
         </view>
         <view
-          wx:if="{{selectedEntry.status === 'active'}}"
-          class="preview-progress-add"
-          bindtap="increasePreviewProgress"
-          aria-role="button"
-          aria-label="进度加一"
-        >+1</view>
+          class="progress-stepper-button progress-stepper-button--primary {{editingTotalProgress > 0 && editingCurrentProgress >= editingTotalProgress ? 'progress-stepper-button--disabled' : ''}}"
+          data-delta="1"
+          bindtap="adjustCurrentProgress"
+        >+</view>
+      </view>
+      <view class="editor-progress">
+        <t-progress
+          percentage="{{editingPercentage}}"
+          label="{{editingPercentage + '%'}}"
+          color="#07c160"
+          track-color="#ededed"
+          stroke-width="12rpx"
+        ></t-progress>
       </view>
     </view>
-    <view class="preview-meta">
-      <text>{{selectedEntry.timeLabel}}</text>
+
+    <view class="editor-links">
+      <text wx:if="{{editingFavorite.sourceUrl}}" bindtap="copySource">复制豆瓣链接</text>
+      <text
+        class="remove-action"
+        data-id="{{editingFavorite.favoriteId}}"
+        data-title="{{editingFavorite.title}}"
+        bindtap="removeFavorite"
+      >移出收藏</text>
     </view>
-    <view class="preview-actions">
-      <view bindtap="closePreview">关闭</view>
-      <view bindtap="openSelectedEntry">查看详情</view>
-    </view>
+    <t-button block theme="primary" shape="round" size="large" bind:tap="saveEditor">保存</t-button>
   </view>
 </view>
 
-<bottom-nav active="records"></bottom-nav>
+<view wx:if="{{detailVisible && detailFavorite}}" class="detail-overlay" bindtap="closeFavoriteDetail">
+  <view class="detail-card" catchtap="preventClose">
+    <view class="detail-header">
+      <view class="detail-cover">
+        <image
+          wx:if="{{detailFavorite.displayCover}}"
+          src="{{detailFavorite.displayCover}}"
+          class="detail-cover-image"
+          mode="aspectFill"
+        ></image>
+        <text wx:else>{{selectedCategoryMark}}</text>
+      </view>
+      <view class="detail-heading">
+        <text class="detail-title">{{detailFavorite.title}}</text>
+        <view class="detail-meta">
+          <text wx:if="{{detailFavorite.year}}">{{detailFavorite.year}}</text>
+          <text wx:if="{{detailFavorite.rating}}">豆瓣 {{detailFavorite.rating}}</text>
+          <text>{{detailFavorite.statusLabel}}</text>
+        </view>
+        <text wx:if="{{detailGenres}}" class="detail-extra">{{detailGenres}}</text>
+        <text wx:if="{{detailCreators}}" class="detail-extra">{{detailCreators}}</text>
+      </view>
+      <view class="detail-close" bindtap="closeFavoriteDetail"><t-icon name="close" size="34rpx"></t-icon></view>
+    </view>
+    <view class="detail-body">
+      <text class="detail-label">简介</text>
+      <view wx:if="{{detailLoading}}" class="detail-loading">
+        <t-skeleton loading theme="paragraph" animation="gradient"></t-skeleton>
+      </view>
+      <text wx:elif="{{detailFavorite.description}}" class="detail-description">{{detailFavorite.description}}</text>
+      <text wx:else class="detail-empty">{{detailError || '暂无简介'}}</text>
+    </view>
+    <text wx:if="{{detailFavorite.sourceUrl}}" class="detail-source" bindtap="copySource">复制豆瓣链接</text>
+  </view>
+</view>
+
+<bottom-nav active="favorites"></bottom-nav>

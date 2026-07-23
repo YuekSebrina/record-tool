@@ -2,7 +2,7 @@ Component({
   properties: {
     active: {
       type: String,
-      value: 'home',
+      value: 'search',
     },
   },
 
@@ -17,6 +17,7 @@ Component({
         return
       }
 
+      wx.vibrateShort({ type: 'light', fail: () => {} })
       wx.redirectTo({ url })
     },
   },
