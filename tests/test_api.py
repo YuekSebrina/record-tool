@@ -76,6 +76,27 @@ class ApiTestCase(unittest.TestCase):
         response = self.client.get('/api/search?q=test&type=movie')
         self.assertEqual(response.status_code, 502)
 
+    @patch('wxcloudrun.views.fetch_douban_page')
+    def test_detail_extracts_summary_rating_and_genres(self, fetch_douban_page):
+        payload = {
+            'intro': 'A classic movie.',
+            'rating': {'value': 9.6},
+            'genres': ['Drama'],
+            'directors': [{'name': 'Director'}],
+            'actors': [{'name': 'Actor'}],
+            'url': 'https://movie.douban.com/subject/1291546/',
+        }
+        fetch_douban_page.return_value = FakeResponse(json.dumps(payload).encode('utf-8'))
+
+        response = self.client.get('/api/detail?id=1291546&type=movie')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()['data']
+        self.assertEqual(data['description'], 'A classic movie.')
+        self.assertEqual(data['rating'], '9.6')
+        self.assertEqual(data['genres'], ['Drama'])
+        self.assertEqual(data['creators'], ['Director', 'Actor'])
+
     def test_image_rejects_arbitrary_host(self):
         response = self.client.get('/api/image?url=https://example.com/image.jpg')
         self.assertEqual(response.status_code, 400)

@@ -2,6 +2,8 @@ from datetime import datetime
 from http.client import HTTPException
 import json
 import socket
+from threading import Lock
+import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import build_opener, HTTPRedirectHandler, Request, urlopen
@@ -21,6 +23,12 @@ DOUBAN_SEARCH_URLS = {
 }
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_SEARCH_SIZE = 1024 * 1024
+MAX_DETAIL_SIZE = 2 * 1024 * 1024
+DETAIL_CACHE_TTL = 60 * 60
+DETAIL_CACHE_LIMIT = 256
+detail_cache = {}
+detail_cache_lock = Lock()
+detail_fetch_lock = Lock()
 
 
 class NoRedirectHandler(HTTPRedirectHandler):
@@ -49,6 +57,15 @@ def fetch_douban_image(url):
     return image_opener.open(upstream_request, timeout=8)
 
 
+def fetch_douban_page(url, referer):
+    upstream_request = Request(url, headers={
+        'Accept': 'application/json',
+        'Referer': referer,
+        'User-Agent': 'Mozilla/5.0 (compatible; Shiyu/1.0)',
+    })
+    return urlopen(upstream_request, timeout=8)
+
+
 def is_douban_image_url(url):
     try:
         parsed = urlparse(url)
@@ -72,6 +89,12 @@ def is_valid_image(content_type, image):
 
 def as_text(value):
     return '' if value is None else str(value).strip()
+
+
+def get_people_names(items, limit=6):
+    if not isinstance(items, list):
+        return []
+    return [as_text(item.get('name')) for item in items if isinstance(item, dict) and item.get('name')][:limit]
 
 
 @app.route('/')
@@ -190,6 +213,64 @@ def search_douban():
             'sourceUrl': as_text(item.get('url')),
         })
     return make_succ_response(results)
+
+
+@app.route('/api/detail', methods=['GET'])
+def get_douban_detail():
+    source_id = request.args.get('id', '').strip()
+    category = request.args.get('type', 'movie').strip().lower()
+    if not source_id.isdigit() or len(source_id) > 20:
+        return make_err_response('id参数错误'), 400
+    if category not in DOUBAN_SEARCH_URLS:
+        return make_err_response('type参数错误'), 400
+
+    detail_type = 'book' if category == 'book' else 'movie'
+    cache_key = '{}:{}'.format(detail_type, source_id)
+    with detail_cache_lock:
+        cached = detail_cache.get(cache_key)
+    if cached and time.monotonic() - cached['createdAt'] < DETAIL_CACHE_TTL:
+        return make_succ_response(cached['data'])
+    if not detail_fetch_lock.acquire(blocking=False):
+        return make_err_response('详情请求繁忙，请稍后重试'), 429
+
+    try:
+        with detail_cache_lock:
+            cached = detail_cache.get(cache_key)
+        if cached and time.monotonic() - cached['createdAt'] < DETAIL_CACHE_TTL:
+            return make_succ_response(cached['data'])
+
+        page_url = 'https://m.douban.com/rexxar/api/v2/{}/{}'.format(detail_type, source_id)
+        referer = 'https://m.douban.com/{}/subject/{}/'.format(detail_type, source_id)
+        try:
+            with fetch_douban_page(page_url, referer) as upstream:
+                body = upstream.read(MAX_DETAIL_SIZE + 1)
+                if len(body) > MAX_DETAIL_SIZE:
+                    return make_err_response('豆瓣详情响应过大'), 502
+                payload = json.loads(body.decode('utf-8'))
+        except (HTTPError, URLError, TimeoutError, socket.timeout, OSError, HTTPException, ValueError, UnicodeDecodeError):
+            return make_err_response('豆瓣详情暂时不可用'), 502
+
+        if not isinstance(payload, dict):
+            return make_err_response('豆瓣详情返回了无效数据'), 502
+        rating = payload.get('rating') if isinstance(payload.get('rating'), dict) else {}
+        creators = [as_text(item) for item in payload.get('author', [])] if detail_type == 'book' else []
+        if detail_type == 'movie':
+            creators = get_people_names(payload.get('directors'), 2) + get_people_names(payload.get('actors'), 4)
+        detail = {
+            'description': as_text(payload.get('intro')),
+            'rating': as_text(rating.get('value')),
+            'genres': [as_text(item) for item in payload.get('genres', []) if as_text(item)],
+            'creators': creators,
+            'sourceUrl': as_text(payload.get('url')),
+        }
+        with detail_cache_lock:
+            if len(detail_cache) >= DETAIL_CACHE_LIMIT:
+                oldest_key = min(detail_cache, key=lambda key: detail_cache[key]['createdAt'])
+                detail_cache.pop(oldest_key, None)
+            detail_cache[cache_key] = {'createdAt': time.monotonic(), 'data': detail}
+        return make_succ_response(detail)
+    finally:
+        detail_fetch_lock.release()
 
 
 @app.route('/api/image', methods=['GET'])

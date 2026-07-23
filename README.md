@@ -68,6 +68,14 @@ GET /api/search?q=霸王别姬&type=movie
 GET /api/image?url=https%3A%2F%2Fimg1.doubanio.com%2Fview%2Fphoto%2Fs_ratio_poster%2Fpublic%2Fp2911205318.jpg
 ```
 
+### `GET /api/detail`
+
+获取豆瓣条目的简介、豆瓣评分和类型。`type` 支持 `book`、`anime`、`movie`、`series`。
+
+```text
+GET /api/detail?id=1291546&type=movie
+```
+
 ### `GET /api/count`
 
 获取当前计数
