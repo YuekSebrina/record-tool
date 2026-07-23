@@ -15,6 +15,8 @@ import {
 } from '../../utils/catalog'
 
 type CollectionLayout = 'list' | 'grid'
+type CollectionSort = 'newest' | 'oldest' | 'rating' | 'progress' | 'title'
+type StatusFilter = FavoriteStatus | 'all'
 
 interface FavoriteView extends FavoriteItem {
   displayCover: string
@@ -25,8 +27,8 @@ interface CategoryView {
   key: FavoriteCategory
   label: string
   mark: string
+  icon: string
   count: number
-  tabLabel: string
 }
 
 interface ValueEventDetail {
@@ -35,6 +37,13 @@ interface ValueEventDetail {
 
 let currentLoadId = 0
 let currentFavoriteDetailId = 0
+
+const categoryIcons: Record<FavoriteCategory, string> = {
+  book: '/assets/category-icons/book.png',
+  anime: '/assets/category-icons/anime.png',
+  movie: '/assets/category-icons/movie.png',
+  series: '/assets/category-icons/series.png',
+}
 
 function toNonNegativeInteger(value: string | number): number {
   return Math.max(0, Math.floor(Number(value) || 0))
@@ -63,17 +72,51 @@ function getStatusLabel(category: FavoriteCategory, status: FavoriteStatus): str
   return option ? option.label : ''
 }
 
+function getStatusFilterOptions(category: FavoriteCategory) {
+  return [{ label: '全部', value: 'all' }, ...getStatusOptions(category)]
+}
+
+function sortFavorites(items: FavoriteView[], sort: CollectionSort): FavoriteView[] {
+  return [...items].sort((left, right) => {
+    if (sort === 'oldest') {
+      return left.savedAt - right.savedAt
+    }
+    if (sort === 'rating') {
+      const leftRating = left.userRating > 0 ? left.userRating * 2 : Number(left.rating) || 0
+      const rightRating = right.userRating > 0 ? right.userRating * 2 : Number(right.rating) || 0
+      return rightRating - leftRating || right.savedAt - left.savedAt
+    }
+    if (sort === 'progress') {
+      return right.progressPercentage - left.progressPercentage || right.savedAt - left.savedAt
+    }
+    if (sort === 'title') {
+      return left.title.localeCompare(right.title, 'zh-CN')
+    }
+    return right.savedAt - left.savedAt
+  })
+}
+
 Page({
   data: {
+    pageTopStyle: '',
     categories: [] as CategoryView[],
     selectedCategory: 'movie' as FavoriteCategory,
     selectedCategoryMark: '影',
     selectedCategoryLabel: '电影',
     layout: 'list' as CollectionLayout,
-    layoutOptions: [
-      { label: '列表', value: 'list' },
-      { label: '宫格', value: 'grid' },
+    sortVisible: false,
+    selectedSort: 'newest' as CollectionSort,
+    selectedSortLabel: '最新收藏',
+    sortOptions: [
+      { label: '最新收藏', value: 'newest' },
+      { label: '最早收藏', value: 'oldest' },
+      { label: '评分最高', value: 'rating' },
+      { label: '进度最高', value: 'progress' },
+      { label: '名称排序', value: 'title' },
     ],
+    statusFilter: 'all' as StatusFilter,
+    statusFilterOptions: getStatusFilterOptions('movie'),
+    selectedCategoryCount: 0,
     favorites: [] as FavoriteView[],
     totalCount: 0,
     editorVisible: false,
@@ -96,6 +139,11 @@ Page({
     detailFavorite: null as FavoriteView | null,
   },
 
+  onLoad() {
+    const menuButton = wx.getMenuButtonBoundingClientRect()
+    this.setData({ pageTopStyle: `padding-top: ${Math.max(0, menuButton.top - 2)}px;` })
+  },
+
   onShow() {
     this.loadFavorites()
   },
@@ -106,8 +154,8 @@ Page({
     pinDisplayCovers([])
   },
 
-  selectCategory(event: WechatMiniprogram.CustomEvent<ValueEventDetail>) {
-    const value = String(event.detail.value)
+  selectCategory(event: WechatMiniprogram.BaseEvent) {
+    const value = String(event.currentTarget.dataset.value)
     const selectedCategory: FavoriteCategory = value === 'book'
       || value === 'anime'
       || value === 'series'
@@ -115,6 +163,7 @@ Page({
       : 'movie'
     const option = categoryOptions.find((item) => item.key === selectedCategory) || categoryOptions[0]
     const isBook = selectedCategory === 'book'
+    vibrateLight()
     this.setData({
       selectedCategory,
       selectedCategoryMark: option.mark,
@@ -123,18 +172,66 @@ Page({
       editingFavorite: null,
       detailVisible: false,
       detailFavorite: null,
+      sortVisible: false,
+      statusFilter: 'all',
       progressCurrentLabel: isBook ? '已读页数' : '已看集数',
       progressTotalLabel: isBook ? '总页数' : '总集数',
       progressUnit: isBook ? '页' : '集',
       supportsProgress: selectedCategory !== 'movie',
       statusOptions: getStatusOptions(selectedCategory),
+      statusFilterOptions: getStatusFilterOptions(selectedCategory),
     }, () => this.loadFavorites())
   },
 
-  switchLayout(event: WechatMiniprogram.CustomEvent<ValueEventDetail>) {
-    const layout: CollectionLayout = String(event.detail.value) === 'grid' ? 'grid' : 'list'
+  switchLayout(event: WechatMiniprogram.BaseEvent) {
+    const layout: CollectionLayout = String(event.currentTarget.dataset.value) === 'grid' ? 'grid' : 'list'
     vibrateLight()
     this.setData({ layout })
+  },
+
+  toggleSortPanel() {
+    vibrateLight()
+    this.setData({ sortVisible: !this.data.sortVisible })
+  },
+
+  closeSortPanel() {
+    vibrateLight()
+    this.setData({ sortVisible: false })
+  },
+
+  selectSort(event: WechatMiniprogram.BaseEvent) {
+    const value = String(event.currentTarget.dataset.value)
+    const selectedSort: CollectionSort = value === 'oldest'
+      || value === 'rating'
+      || value === 'progress'
+      || value === 'title'
+      ? value
+      : 'newest'
+    const option = this.data.sortOptions.find((item) => item.value === selectedSort)
+    vibrateLight()
+    this.setData({
+      selectedSort,
+      selectedSortLabel: option ? option.label : '最新收藏',
+    }, () => this.loadFavorites())
+  },
+
+  selectStatusFilter(event: WechatMiniprogram.BaseEvent) {
+    const value = String(event.currentTarget.dataset.value)
+    const statusFilter: StatusFilter = value === 'planned' || value === 'active' || value === 'completed'
+      ? value
+      : 'all'
+    vibrateLight()
+    this.setData({ statusFilter }, () => this.loadFavorites())
+  },
+
+  clearCollectionFilters() {
+    vibrateLight()
+    this.setData({
+      selectedSort: 'newest',
+      selectedSortLabel: '最新收藏',
+      statusFilter: 'all',
+      sortVisible: false,
+    }, () => this.loadFavorites())
   },
 
   loadFavorites() {
@@ -146,19 +243,28 @@ Page({
         key: category.key,
         label: category.label,
         mark: category.mark,
+        icon: categoryIcons[category.key],
         count,
-        tabLabel: `${category.label} ${count}`,
       }
     })
-    const favorites: FavoriteView[] = allFavorites
+    const categoryFavorites: FavoriteView[] = allFavorites
       .filter((item) => item.category === this.data.selectedCategory)
       .map((item) => ({
         ...item,
         displayCover: '',
         statusLabel: getStatusLabel(item.category, item.status),
       }))
+    const filteredFavorites = this.data.statusFilter === 'all'
+      ? categoryFavorites
+      : categoryFavorites.filter((item) => item.status === this.data.statusFilter)
+    const favorites = sortFavorites(filteredFavorites, this.data.selectedSort)
     pinDisplayCovers(favorites.map((item) => item.cover))
-    this.setData({ categories, favorites, totalCount: allFavorites.length })
+    this.setData({
+      categories,
+      favorites,
+      totalCount: allFavorites.length,
+      selectedCategoryCount: categoryFavorites.length,
+    })
 
     Promise.all(favorites.map(async (item) => {
       try {
@@ -188,10 +294,11 @@ Page({
     const userRating = Math.min(5, Math.max(0, Number(event.detail.value) || 0))
     updateFavoriteDetails(id, userRating, favorite.currentProgress, favorite.totalProgress, favorite.status)
     vibrateLight()
+    const favorites = this.data.favorites.map((item) => item.favoriteId === id
+      ? { ...item, userRating }
+      : item)
     this.setData({
-      favorites: this.data.favorites.map((item) => item.favoriteId === id
-        ? { ...item, userRating }
-        : item),
+      favorites: sortFavorites(favorites, this.data.selectedSort),
     })
   },
 
@@ -214,6 +321,7 @@ Page({
   },
 
   closeEditor() {
+    vibrateLight()
     this.setData({ editorVisible: false, editingFavorite: null })
   },
 
@@ -239,6 +347,10 @@ Page({
       editingCurrentProgress,
       editingPercentage: getProgressPercentage(editingCurrentProgress, this.data.editingTotalProgress),
     })
+  },
+
+  handleControlFocus() {
+    vibrateLight()
   },
 
   adjustCurrentProgress(event: WechatMiniprogram.BaseEvent) {
@@ -289,6 +401,7 @@ Page({
 
   removeFavorite(event: WechatMiniprogram.BaseEvent) {
     const { id, title } = event.currentTarget.dataset as { id: string; title: string }
+    vibrateLight()
     wx.showModal({
       title: '移出收藏',
       content: `确定要移除“${title}”吗？`,
@@ -310,6 +423,7 @@ Page({
   copySource() {
     const favorite = this.data.detailFavorite || this.data.editingFavorite
     if (favorite && favorite.sourceUrl) {
+      vibrateLight()
       wx.setClipboardData({ data: favorite.sourceUrl })
     }
   },
@@ -370,6 +484,7 @@ Page({
   },
 
   closeFavoriteDetail() {
+    vibrateLight()
     currentFavoriteDetailId += 1
     this.setData({ detailVisible: false, detailFavorite: null })
   },

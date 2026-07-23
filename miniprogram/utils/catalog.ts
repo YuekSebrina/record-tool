@@ -84,7 +84,10 @@ function callContainer<T>(
   })
 }
 
-export async function searchCatalog(keyword: string, category: FavoriteCategory): Promise<CatalogItem[]> {
+export async function searchCatalog(
+  keyword: string,
+  category: FavoriteCategory | 'media',
+): Promise<CatalogItem[]> {
   let response: CloudContainerResult<ApiResponse<CatalogItem[]>>
   try {
     response = await callContainer<ApiResponse<CatalogItem[]>>(
@@ -458,12 +461,14 @@ function getStoredPercentage(current: number, total: number): number {
 }
 
 export function isFavorite(category: FavoriteCategory, id: string): boolean {
-  return getFavorites().some((item) => item.category === category && item.id === id)
+  return getFavorites().some((item) => item.id === id
+    && (item.category === 'book') === (category === 'book'))
 }
 
 export function saveFavorite(item: CatalogItem): boolean {
   const favorites = getFavorites()
-  if (favorites.some((favorite) => favorite.category === item.category && favorite.id === item.id)) {
+  if (favorites.some((favorite) => favorite.id === item.id
+    && (favorite.category === 'book') === (item.category === 'book'))) {
     return false
   }
   const favorite: FavoriteItem = {

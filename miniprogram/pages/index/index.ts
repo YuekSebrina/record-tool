@@ -56,10 +56,18 @@ function toSearchResultView(item: CatalogItem): SearchResultView {
   }
 }
 
+function normalizeLegacySearchItem(item: CatalogItem): CatalogItem {
+  if (item.category === 'movie' && item.episode.trim()) {
+    return { ...item, category: 'series' }
+  }
+  return item
+}
+
 Page({
   data: {
     keyword: '',
     hasKeyword: false,
+    pageTopStyle: '',
     searchDockStyle: '',
     searchFilter: 'all' as SearchFilter,
     filterLabel: '全部',
@@ -95,6 +103,8 @@ Page({
   },
 
   onLoad() {
+    const menuButton = wx.getMenuButtonBoundingClientRect()
+    this.setData({ pageTopStyle: `padding-top: ${Math.max(0, menuButton.top - 6)}px;` })
     keyboardHeightHandler = (result) => this.updateSearchDockForKeyboard(result.height)
     wx.onKeyboardHeightChange(keyboardHeightHandler)
   },
@@ -133,6 +143,10 @@ Page({
     this.setData({ keyword, hasKeyword: Boolean(keyword.trim()) })
   },
 
+  handleSearchFocus() {
+    vibrateLight()
+  },
+
   handleKeyboardHeightChange(event: WechatMiniprogram.CustomEvent<{ height: number }>) {
     this.updateSearchDockForKeyboard(event.detail.height)
   },
@@ -151,6 +165,7 @@ Page({
   },
 
   clearKeyword() {
+    vibrateLight()
     currentSearchId += 1
     this.setData({
       keyword: '',
@@ -168,6 +183,7 @@ Page({
   },
 
   closeFilter() {
+    vibrateLight()
     this.setData({ filterVisible: false })
   },
 
@@ -269,6 +285,11 @@ Page({
     }
   },
 
+  retryTrending() {
+    vibrateLight()
+    void this.loadTrending()
+  },
+
   async runSearch() {
     const keyword = this.data.keyword.trim()
     if (!keyword) {
@@ -279,13 +300,23 @@ Page({
     const searchId = ++currentSearchId
     this.setData({ loading: true, searched: true, errorMessage: '', results: [] })
     try {
-      const categories = this.data.searchFilter === 'all'
-        ? categoryOptions.map((item) => item.key)
+      const categories: Array<FavoriteCategory | 'media'> = this.data.searchFilter === 'all'
+        ? ['book', 'media']
         : [this.data.searchFilter]
       const responses = await Promise.all(categories.map(async (category) => {
         try {
           return { success: true, items: await searchCatalog(keyword, category), error: null }
         } catch (error) {
+          if (category === 'media'
+            && error instanceof Error
+            && error.message.includes('HTTP 400')) {
+            try {
+              const items = await searchCatalog(keyword, 'movie')
+              return { success: true, items: items.map(normalizeLegacySearchItem), error: null }
+            } catch (_fallbackError) {
+              // Keep the original media error so the partial-search message remains useful.
+            }
+          }
           return { success: false, items: [] as CatalogItem[], error }
         }
       }))
@@ -296,7 +327,18 @@ Page({
         const error = responses[0] && responses[0].error
         throw error instanceof Error ? error : new Error('搜索失败，请稍后重试')
       }
-      const results = responses.flatMap((response) => response.items).map(toSearchResultView)
+      const uniqueItems = new Map<string, CatalogItem>()
+      responses
+        .flatMap((response) => response.items)
+        .map(normalizeLegacySearchItem)
+        .filter((item) => this.data.searchFilter === 'all' || item.category === this.data.searchFilter)
+        .forEach((item) => {
+          const key = item.category === 'book' ? `book-${item.id}` : `media-${item.id}`
+          if (!uniqueItems.has(key)) {
+            uniqueItems.set(key, item)
+          }
+        })
+      const results = Array.from(uniqueItems.values()).map(toSearchResultView)
       this.setData({ results, loading: false })
       if (responses.some((response) => !response.success)) {
         wx.showToast({ title: '部分分类暂时不可用', icon: 'none' })
@@ -412,6 +454,7 @@ Page({
   },
 
   closeDetail() {
+    vibrateLight()
     currentDetailId += 1
     this.setData({ detailVisible: false, selectedResult: null })
   },

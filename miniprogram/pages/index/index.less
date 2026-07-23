@@ -15,8 +15,16 @@ page {
     linear-gradient(180deg, #fbfaff 0, #fdfcfb 520rpx, #f5f5f5 900rpx);
 }
 
+.page-navigation {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+}
+
 .search-page {
-  padding: 20rpx 24rpx calc(250rpx + env(safe-area-inset-bottom));
+  padding: 0 24rpx calc(250rpx + env(safe-area-inset-bottom));
   background: transparent;
   --td-brand-color: #07c160;
   --td-brand-color-active: #06ad56;
@@ -27,7 +35,7 @@ page {
 .page-heading {
   display: flex;
   flex-direction: column;
-  padding: 20rpx 4rpx 34rpx;
+  padding: 20rpx 4rpx 28rpx;
 }
 
 .page-title-row {
@@ -93,7 +101,7 @@ page {
 }
 
 .trending-card--anime {
-  background: linear-gradient(160deg, #fff3f4, #f9e7ea);
+  background: linear-gradient(160deg, #f5f0ff, #e9defa);
 }
 
 .trending-card--movie {
@@ -101,7 +109,7 @@ page {
 }
 
 .trending-card--series {
-  background: linear-gradient(160deg, #fff5e8, #fae8cf);
+  background: linear-gradient(160deg, #fff1f5, #f8dfe8);
 }
 
 .trending-card--loading {

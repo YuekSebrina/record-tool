@@ -50,7 +50,12 @@
   "libVersion": "2.32.3",
   "packOptions": {
     "ignore": [],
-    "include": []
+    "include": [
+      {
+        "value": "assets/category-icons",
+        "type": "folder"
+      }
+    ]
   },
   "appid": "wx3bb09833ab3cc2b7"
 }

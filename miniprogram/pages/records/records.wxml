@@ -1,130 +1,182 @@
-<page-meta page-style="{{editorVisible || detailVisible ? 'overflow: hidden;' : ''}}"></page-meta>
-<navigation-bar title="拾羽" back="{{false}}" color="#202124" background="#f5f5f5"></navigation-bar>
+<page-meta page-style="{{editorVisible || detailVisible || sortVisible ? 'overflow: hidden;' : ''}}"></page-meta>
+<navigation-bar class="page-navigation" title="" back="{{false}}" color="#202124" background="transparent"></navigation-bar>
+<view wx:if="{{sortVisible}}" class="collection-filter-mask" bindtap="closeSortPanel"></view>
 
-<view class="page-canvas collection-page">
+<view class="page-canvas collection-page" style="{{pageTopStyle}}">
   <view class="collection-heading">
-    <view>
-      <text class="collection-title">我的收藏</text>
-      <text class="collection-description">共 {{totalCount}} 部作品</text>
-    </view>
-    <view class="layout-switch">
-      <t-segmented value="{{layout}}" options="{{layoutOptions}}" bind:change="switchLayout"></t-segmented>
-    </view>
+    <text class="collection-title">我的收藏</text>
   </view>
 
-  <view class="category-tabs">
-    <t-tabs value="{{selectedCategory}}" theme="tag" bind:change="selectCategory">
-      <t-tab-panel
-        wx:for="{{categories}}"
-        wx:key="key"
-        value="{{item.key}}"
-        label="{{item.tabLabel}}"
-      ></t-tab-panel>
-    </t-tabs>
-  </view>
-
-  <view wx:if="{{favorites.length && layout === 'list'}}" class="favorite-list">
-    <view class="favorite-row" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openEditor">
-      <view class="list-cover">
-        <t-image
-          wx:if="{{item.displayCover}}"
-          src="{{item.displayCover}}"
-          width="140rpx"
-          height="190rpx"
-          shape="round"
-          mode="aspectFill"
-          lazy
-        ></t-image>
-        <text wx:else>{{selectedCategoryMark}}</text>
+  <view class="category-grid">
+    <view
+      wx:for="{{categories}}"
+      wx:key="key"
+      class="category-card category-card--{{item.key}} {{selectedCategory === item.key ? 'category-card--active' : ''}}"
+      data-value="{{item.key}}"
+      bindtap="selectCategory"
+    >
+      <view class="category-icon-shell">
+        <image class="category-icon-image" src="{{item.icon}}" mode="aspectFit"></image>
       </view>
+      <text class="category-name">{{item.label}}</text>
+      <text class="category-count">{{item.count}}</text>
+    </view>
+  </view>
 
-      <view class="favorite-info">
-        <view class="favorite-title-row">
-          <text class="favorite-title">{{item.title}}</text>
-          <t-tag wx:if="{{item.year}}" size="small" variant="light">{{item.year}}</t-tag>
-          <t-tag size="small" theme="success" variant="light">{{item.statusLabel}}</t-tag>
-        </view>
-        <text wx:if="{{item.author}}" class="favorite-subtitle">{{item.author}}</text>
+  <view class="collection-toolbar {{sortVisible ? 'collection-toolbar--open' : ''}}">
+    <view class="layout-switch">
+      <view
+        class="layout-option {{layout === 'list' ? 'layout-option--active' : ''}}"
+        data-value="list"
+        bindtap="switchLayout"
+      >列表</view>
+      <view
+        class="layout-option {{layout === 'grid' ? 'layout-option--active' : ''}}"
+        data-value="grid"
+        bindtap="switchLayout"
+      >海报</view>
+    </view>
+    <view class="collection-sort {{statusFilter !== 'all' ? 'collection-sort--active' : ''}}" bindtap="toggleSortPanel">
+      <t-icon name="filter" size="24rpx" color="{{statusFilter !== 'all' ? '#07a950' : '#9aa09c'}}"></t-icon>
+      <text>{{selectedSortLabel}}</text>
+      <t-icon name="chevron-{{sortVisible ? 'up' : 'down'}}" size="22rpx" color="#9aa09c"></t-icon>
+    </view>
+    <view wx:if="{{sortVisible}}" class="collection-filter-panel" catchtap="preventClose">
+      <text class="collection-filter-title">排序方式</text>
+      <view class="collection-filter-options">
+        <view
+          wx:for="{{sortOptions}}"
+          wx:key="value"
+          class="collection-filter-option {{selectedSort === item.value ? 'collection-filter-option--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="selectSort"
+        >{{item.label}}</view>
+      </view>
+      <text class="collection-filter-title collection-filter-title--status">阅读/观看状态</text>
+      <view class="collection-filter-options collection-filter-options--status">
+        <view
+          wx:for="{{statusFilterOptions}}"
+          wx:key="value"
+          class="collection-filter-option {{statusFilter === item.value ? 'collection-filter-option--active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="selectStatusFilter"
+        >{{item.label}}</view>
+      </view>
+      <view class="collection-filter-reset" bindtap="clearCollectionFilters">恢复默认</view>
+    </view>
+  </view>
 
-        <view class="rating-row" catchtap="preventClose">
-          <t-rate
-            value="{{item.userRating}}"
-            count="5"
-            size="36rpx"
-            gap="5rpx"
-            color="#f4b740"
+  <scroll-view
+    class="collection-scroll"
+    scroll-y="{{!editorVisible && !detailVisible && !sortVisible}}"
+    show-scrollbar="{{false}}"
+    enhanced="{{true}}"
+    enable-flex="{{true}}"
+  >
+    <view wx:if="{{favorites.length && layout === 'list'}}" class="favorite-list">
+      <view class="favorite-row" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openFavoriteDetail">
+        <view class="list-cover">
+          <image
+            wx:if="{{item.displayCover}}"
+            src="{{item.displayCover}}"
+            class="list-cover-image"
+            mode="aspectFill"
+            lazy-load="{{true}}"
             data-id="{{item.favoriteId}}"
-            bind:change="changeRating"
-          ></t-rate>
-          <text>{{item.userRating ? item.userRating + ' 分' : '未评分'}}</text>
+            binderror="handleCoverError"
+          ></image>
+          <text wx:else>{{selectedCategoryMark}}</text>
         </view>
 
-        <view wx:if="{{supportsProgress}}" class="progress-summary">
-          <view class="progress-copy">
-            <text>{{item.currentProgress}} / {{item.totalProgress || '--'}} {{progressUnit}}</text>
-            <text>{{item.progressPercentage}}%</text>
+        <view class="favorite-info">
+          <view class="favorite-title-row">
+            <text class="favorite-title">{{item.title}}</text>
+            <view class="favorite-more" data-id="{{item.favoriteId}}" catchtap="openEditor">
+              <view class="favorite-more-dot"></view>
+              <view class="favorite-more-dot"></view>
+              <view class="favorite-more-dot"></view>
+            </view>
           </view>
-          <t-progress
-            percentage="{{item.progressPercentage}}"
-            label="{{false}}"
-            color="#07c160"
-            track-color="#ededed"
-            stroke-width="8rpx"
-          ></t-progress>
-        </view>
+          <view class="favorite-meta-line">
+            <text wx:if="{{item.year}}">{{item.year}}</text>
+            <text wx:if="{{item.author}}">{{item.author}}</text>
+            <text wx:if="{{item.episode}}">{{item.episode}}</text>
+          </view>
 
-        <view class="row-actions">
-          <text data-id="{{item.favoriteId}}" catchtap="openEditor">{{supportsProgress ? '状态、评分与进度' : '状态与评分'}}</text>
-          <text data-id="{{item.favoriteId}}" catchtap="openFavoriteDetail">查看简介</text>
-          <text
-            class="remove-action"
+          <view class="rating-row" catchtap="preventClose">
+            <t-rate
+              value="{{item.userRating}}"
+              count="5"
+              size="28rpx"
+              gap="3rpx"
+              color="#f4b740"
+              data-id="{{item.favoriteId}}"
+              bind:change="changeRating"
+            ></t-rate>
+            <text>{{item.userRating ? item.userRating + ' 分' : item.rating ? '豆瓣 ' + item.rating : '未评分'}}</text>
+          </view>
+
+          <view class="favorite-status-footer favorite-status-footer--{{item.status}}">
+            <view class="favorite-state-row">
+              <text class="favorite-state favorite-state--{{item.status}}">{{item.statusLabel}}</text>
+              <text wx:if="{{supportsProgress}}">{{item.currentProgress}} / {{item.totalProgress || '--'}} {{progressUnit}}</text>
+              <text wx:if="{{supportsProgress}}" class="favorite-percentage">{{item.progressPercentage}}%</text>
+            </view>
+
+            <view wx:if="{{supportsProgress}}" class="progress-summary">
+              <t-progress
+                percentage="{{item.progressPercentage}}"
+                label="{{false}}"
+                color="#07c160"
+                track-color="rgba(255, 255, 255, 0.72)"
+                stroke-width="8rpx"
+              ></t-progress>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{favorites.length && layout === 'grid'}}" class="favorite-grid">
+      <view class="poster-card" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openFavoriteDetail">
+        <view class="poster-cover">
+          <image
+            wx:if="{{item.displayCover}}"
+            src="{{item.displayCover}}"
+            class="poster-image"
+            mode="aspectFill"
+            lazy-load="{{true}}"
+            data-id="{{item.favoriteId}}"
+            binderror="handleCoverError"
+          ></image>
+          <text wx:else>{{selectedCategoryMark}}</text>
+          <t-tag class="poster-type" size="small" theme="default" variant="dark">{{selectedCategoryLabel}}</t-tag>
+          <view
+            class="poster-remove"
             data-id="{{item.favoriteId}}"
             data-title="{{item.title}}"
             catchtap="removeFavorite"
-          >移除</text>
+          ><t-icon name="close" size="24rpx" color="#fff"></t-icon></view>
+          <view wx:if="{{supportsProgress && item.progressPercentage}}" class="poster-progress">{{item.progressPercentage}}%</view>
+          <view class="poster-detail" data-id="{{item.favoriteId}}" catchtap="openEditor">编辑</view>
+        </view>
+        <view class="poster-info poster-info--{{item.status}}">
+          <text class="poster-title">{{item.title}}</text>
+          <view class="poster-meta">
+            <text>{{item.statusLabel}}</text>
+            <text class="poster-rating">★ {{item.userRating || '未评'}}</text>
+          </view>
         </view>
       </view>
     </view>
-  </view>
 
-  <view wx:elif="{{favorites.length && layout === 'grid'}}" class="favorite-grid">
-    <view class="poster-card" wx:for="{{favorites}}" wx:key="favoriteId" data-id="{{item.favoriteId}}" bindtap="openEditor">
-      <view class="poster-cover">
-        <image
-          wx:if="{{item.displayCover}}"
-          src="{{item.displayCover}}"
-          class="poster-image"
-          mode="aspectFill"
-          lazy-load="{{true}}"
-          data-id="{{item.favoriteId}}"
-          binderror="handleCoverError"
-        ></image>
-        <text wx:else>{{selectedCategoryMark}}</text>
-        <t-tag class="poster-type" size="small" theme="default" variant="dark">{{selectedCategoryLabel}}</t-tag>
-        <view
-          class="poster-remove"
-          data-id="{{item.favoriteId}}"
-          data-title="{{item.title}}"
-          catchtap="removeFavorite"
-        ><t-icon name="close" size="24rpx" color="#fff"></t-icon></view>
-        <view wx:if="{{supportsProgress && item.progressPercentage}}" class="poster-progress">{{item.progressPercentage}}%</view>
-        <view class="poster-detail" data-id="{{item.favoriteId}}" catchtap="openFavoriteDetail">简介</view>
-      </view>
-      <view class="poster-info">
-        <text class="poster-title">{{item.title}}</text>
-        <view class="poster-meta">
-          <text>{{item.statusLabel}}</text>
-          <text class="poster-rating">★ {{item.userRating || '未评'}}</text>
-        </view>
-      </view>
+    <view wx:else class="empty-state">
+      <view class="empty-icon"><t-icon name="heart" size="52rpx" color="#07c160"></t-icon></view>
+      <text class="empty-title">{{selectedCategoryCount ? '没有符合筛选的收藏' : '这里还没有收藏'}}</text>
+      <text wx:if="{{selectedCategoryCount}}" class="empty-filter-action" bindtap="clearCollectionFilters">清除筛选</text>
+      <text wx:else>去搜索页找到喜欢的{{selectedCategoryLabel}}</text>
     </view>
-  </view>
-
-  <view wx:else class="empty-state">
-    <view class="empty-icon"><t-icon name="heart" size="52rpx" color="#07c160"></t-icon></view>
-    <text class="empty-title">这里还没有收藏</text>
-    <text>去搜索页找到喜欢的{{selectedCategoryLabel}}</text>
-  </view>
+  </scroll-view>
 </view>
 
 <view wx:if="{{editorVisible && editingFavorite}}" class="editor-overlay" bindtap="closeEditor">
@@ -174,6 +226,7 @@
             class="progress-total-input"
             type="number"
             value="{{editingTotalProgress}}"
+            bindfocus="handleControlFocus"
             bindinput="changeTotalProgress"
           />
           <text>{{progressUnit}}</text>
@@ -190,6 +243,7 @@
             class="progress-number-input"
             type="number"
             value="{{editingCurrentProgress}}"
+            bindfocus="handleControlFocus"
             bindinput="changeCurrentProgress"
           />
           <text>{{progressUnit}}</text>
