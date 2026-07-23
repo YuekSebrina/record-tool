@@ -3,7 +3,7 @@ import unittest
 from io import BytesIO
 from unittest.mock import patch
 
-from wxcloudrun import app
+from wxcloudrun import app, views
 
 
 class FakeHeaders:
@@ -37,6 +37,7 @@ class ApiTestCase(unittest.TestCase):
     def setUp(self):
         app.config['TESTING'] = True
         self.client = app.test_client()
+        views.trending_cache.clear()
 
     def test_health(self):
         response = self.client.get('/api/health')
@@ -75,6 +76,34 @@ class ApiTestCase(unittest.TestCase):
         fetch_douban.return_value = FakeResponse(b'{"error": "blocked"}')
         response = self.client.get('/api/search?q=test&type=movie')
         self.assertEqual(response.status_code, 502)
+
+    @patch('wxcloudrun.views.fetch_douban_page')
+    def test_trending_returns_one_normalized_item_per_category(self, fetch_douban_page):
+        def response_for_url(url, _referer):
+            category = 'book' if 'book_fiction' in url else 'anime' if 'tv_animation' in url else 'series' if 'tv_hot' in url else 'movie'
+            item = {
+                'id': '{}-id'.format(category),
+                'title': '{} title'.format(category),
+                'year': ['2026'] if category == 'book' else '2026',
+                'rating': {'value': 8.6},
+                'card_subtitle': 'Popular now',
+            }
+            if category == 'book':
+                item.update({'cover': {'url': 'https://img1.doubanio.com/book.jpg'}, 'author': ['Author']})
+            else:
+                item.update({'pic': {'large': 'https://img1.doubanio.com/movie.jpg'}, 'directors': ['Director']})
+            payload = {'subject_collection_items': [item]}
+            return FakeResponse(json.dumps(payload).encode('utf-8'))
+
+        fetch_douban_page.side_effect = response_for_url
+        response = self.client.get('/api/trending')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()['data']
+        self.assertEqual([item['category'] for item in data], ['book', 'anime', 'movie', 'series'])
+        self.assertEqual(data[0]['author'], 'Author')
+        self.assertEqual(data[1]['cover'], 'https://img1.doubanio.com/movie.jpg')
+        self.assertEqual(data[2]['rating'], '8.6')
 
     @patch('wxcloudrun.views.fetch_douban_page')
     def test_detail_extracts_summary_rating_and_genres(self, fetch_douban_page):

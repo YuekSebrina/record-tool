@@ -2,7 +2,7 @@
 [![GitHub license](https://img.shields.io/github/license/WeixinCloud/wxcloudrun-express)](https://github.com/WeixinCloud/wxcloudrun-express)
 ![GitHub package.json dependency version (prod)](https://img.shields.io/badge/python-3.7.3-green)
 
-为“拾羽”微信小程序提供豆瓣书籍、动漫、电影和剧集搜索，以及封面图片代理。现有计数器接口暂时保留，但收藏数据由小程序本地存储管理。
+为“拾羽”微信小程序提供豆瓣书籍、动漫、电影和剧集搜索、实时热门内容，以及封面图片代理。现有计数器接口暂时保留，但收藏数据由小程序本地存储管理。
 
 ![](https://qcloudimg.tencent-cloud.cn/raw/be22992d297d1b9a1a5365e606276781.png)
 
@@ -59,6 +59,10 @@ GET /api/search?q=霸王别姬&type=movie
 ```
 
 返回统一字段：`id`、`category`、`title`、`subtitle`、`cover`、`year`、`author`、`episode`、`rating`、`description`、`sourceType`、`sourceUrl`。豆瓣 suggest 接口未提供的字段为空字符串。
+
+### `GET /api/trending`
+
+并发获取豆瓣当前关注图书、热门动画、热门电影和热门剧集，每类返回一项。结果在服务端缓存 15 分钟。
 
 ### `GET /api/image`
 

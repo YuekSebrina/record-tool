@@ -1,4 +1,5 @@
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.client import HTTPException
 import json
 import socket
@@ -21,14 +22,24 @@ DOUBAN_SEARCH_URLS = {
     'movie': 'https://movie.douban.com/j/subject_suggest',
     'series': 'https://movie.douban.com/j/subject_suggest',
 }
+DOUBAN_TRENDING_COLLECTIONS = {
+    'book': 'book_fiction',
+    'anime': 'tv_animation',
+    'movie': 'movie_hot_gaia',
+    'series': 'tv_hot',
+}
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_SEARCH_SIZE = 1024 * 1024
 MAX_DETAIL_SIZE = 2 * 1024 * 1024
 DETAIL_CACHE_TTL = 60 * 60
 DETAIL_CACHE_LIMIT = 256
+TRENDING_CACHE_TTL = 15 * 60
 detail_cache = {}
 detail_cache_lock = Lock()
 detail_fetch_lock = Lock()
+trending_cache = {}
+trending_cache_lock = Lock()
+trending_fetch_lock = Lock()
 
 
 class NoRedirectHandler(HTTPRedirectHandler):
@@ -95,6 +106,52 @@ def get_people_names(items, limit=6):
     if not isinstance(items, list):
         return []
     return [as_text(item.get('name')) for item in items if isinstance(item, dict) and item.get('name')][:limit]
+
+
+def first_text(value):
+    if isinstance(value, list):
+        return as_text(value[0]) if value else ''
+    return as_text(value)
+
+
+def fetch_trending_item(category, collection):
+    upstream_url = 'https://m.douban.com/rexxar/api/v2/subject_collection/{}/items?{}'.format(
+        collection,
+        urlencode({'start': 0, 'count': 1}),
+    )
+    with fetch_douban_page(upstream_url, 'https://m.douban.com/') as upstream:
+        body = upstream.read(MAX_DETAIL_SIZE + 1)
+        if len(body) > MAX_DETAIL_SIZE:
+            raise ValueError('response too large')
+        payload = json.loads(body.decode('utf-8'))
+    items = payload.get('subject_collection_items') if isinstance(payload, dict) else None
+    if not isinstance(items, list) or not items or not isinstance(items[0], dict):
+        raise ValueError('invalid trending response')
+
+    item = items[0]
+    source_id = as_text(item.get('id'))
+    title = as_text(item.get('title'))
+    if not source_id or not title:
+        raise ValueError('invalid trending item')
+    cover_data = item.get('cover') if isinstance(item.get('cover'), dict) else {}
+    picture_data = item.get('pic') if isinstance(item.get('pic'), dict) else {}
+    rating_data = item.get('rating') if isinstance(item.get('rating'), dict) else {}
+    people = item.get('author') if category == 'book' else item.get('directors')
+    source_type = 'book' if category == 'book' else 'movie'
+    return {
+        'id': source_id,
+        'category': category,
+        'title': title,
+        'subtitle': as_text(item.get('card_subtitle') or item.get('info')),
+        'cover': as_text(cover_data.get('url') or picture_data.get('large') or picture_data.get('normal')),
+        'year': first_text(item.get('year')),
+        'author': ' / '.join(as_text(name) for name in people or [] if as_text(name)),
+        'episode': as_text(item.get('episodes_info')),
+        'rating': as_text(rating_data.get('value')),
+        'description': as_text(item.get('description') or item.get('comment')),
+        'sourceType': source_type,
+        'sourceUrl': 'https://{}.douban.com/subject/{}/'.format(source_type, source_id),
+    }
 
 
 @app.route('/')
@@ -213,6 +270,48 @@ def search_douban():
             'sourceUrl': as_text(item.get('url')),
         })
     return make_succ_response(results)
+
+
+@app.route('/api/trending', methods=['GET'])
+def get_douban_trending():
+    with trending_cache_lock:
+        cached = trending_cache.get('items')
+    if cached and time.monotonic() - cached['createdAt'] < TRENDING_CACHE_TTL:
+        return make_succ_response(cached['data'])
+    if not trending_fetch_lock.acquire(blocking=False):
+        if cached:
+            return make_succ_response(cached['data'])
+        return make_err_response('热门内容请求繁忙，请稍后重试'), 429
+
+    try:
+        with trending_cache_lock:
+            cached = trending_cache.get('items')
+        if cached and time.monotonic() - cached['createdAt'] < TRENDING_CACHE_TTL:
+            return make_succ_response(cached['data'])
+
+        results = {}
+        try:
+            with ThreadPoolExecutor(max_workers=len(DOUBAN_TRENDING_COLLECTIONS)) as executor:
+                futures = {
+                    executor.submit(fetch_trending_item, category, collection): category
+                    for category, collection in DOUBAN_TRENDING_COLLECTIONS.items()
+                }
+                for future in as_completed(futures):
+                    results[futures[future]] = future.result()
+        except (HTTPError, URLError, TimeoutError, socket.timeout, OSError, HTTPException,
+                ValueError, UnicodeDecodeError, json.JSONDecodeError):
+            if cached:
+                return make_succ_response(cached['data'])
+            return make_err_response('豆瓣热门内容暂时不可用'), 502
+
+        trending = [results[category] for category in DOUBAN_TRENDING_COLLECTIONS if category in results]
+        if len(trending) != len(DOUBAN_TRENDING_COLLECTIONS):
+            return make_err_response('豆瓣热门内容返回不完整'), 502
+        with trending_cache_lock:
+            trending_cache['items'] = {'createdAt': time.monotonic(), 'data': trending}
+        return make_succ_response(trending)
+    finally:
+        trending_fetch_lock.release()
 
 
 @app.route('/api/detail', methods=['GET'])
