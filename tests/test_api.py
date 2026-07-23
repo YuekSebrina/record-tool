@@ -38,14 +38,16 @@ class ApiTestCase(unittest.TestCase):
         app.config['TESTING'] = True
         self.client = app.test_client()
         views.trending_cache.clear()
+        views.media_classification_cache.clear()
 
     def test_health(self):
         response = self.client.get('/api/health')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()['data']['status'], 'ok')
 
+    @patch('wxcloudrun.views.classify_media_subject', return_value='movie')
     @patch('wxcloudrun.views.fetch_douban')
-    def test_search_normalizes_movie(self, fetch_douban):
+    def test_search_normalizes_movie(self, fetch_douban, _classify_media_subject):
         payload = [{
             'id': '1291546',
             'title': '霸王别姬',
@@ -66,6 +68,40 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(result['cover'], payload[0]['img'])
         self.assertEqual(result['rating'], '')
         self.assertEqual(result['description'], '')
+
+    @patch('wxcloudrun.views.classify_media_subject', return_value='series')
+    @patch('wxcloudrun.views.fetch_douban')
+    def test_media_search_uses_classified_category(self, fetch_douban, _classify_media_subject):
+        payload = [{
+            'id': '26928226',
+            'title': '知否知否应是绿肥红瘦',
+            'img': 'https://img1.doubanio.com/poster.jpg',
+            'year': '2018',
+            'episode': '78',
+            'type': 'movie',
+        }]
+        fetch_douban.return_value = FakeResponse(json.dumps(payload).encode('utf-8'))
+
+        response = self.client.get('/api/search?q=知否&type=media')
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()['data']
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['category'], 'series')
+
+    @patch('wxcloudrun.views.fetch_douban_page')
+    def test_media_classifier_prioritizes_animation_genre(self, fetch_douban_page):
+        payload = {
+            'type': 'tv',
+            'is_tv': True,
+            'episodes_count': 12,
+            'genres': ['剧情', '动画'],
+        }
+        fetch_douban_page.return_value = FakeResponse(json.dumps(payload).encode('utf-8'))
+
+        category = views.classify_media_subject('37441858', '12')
+
+        self.assertEqual(category, 'anime')
 
     def test_search_rejects_invalid_category(self):
         response = self.client.get('/api/search?q=test&type=music')

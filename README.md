@@ -52,7 +52,7 @@
 
 ### `GET /api/search`
 
-搜索豆瓣条目。`q` 为关键词，`type` 支持 `book`、`anime`、`movie`、`series`。
+搜索豆瓣条目。`q` 为关键词，`type` 支持 `book`、`media`、`anime`、`movie`、`series`。`media` 会返回自动识别类别且去重后的影视结果；动漫、电影和剧集通过豆瓣详情中的类型、集数和“动画”类型信息判定。
 
 ```text
 GET /api/search?q=霸王别姬&type=movie

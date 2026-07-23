@@ -18,6 +18,7 @@ from wxcloudrun.response import make_succ_empty_response, make_succ_response, ma
 
 DOUBAN_SEARCH_URLS = {
     'book': 'https://book.douban.com/j/subject_suggest',
+    'media': 'https://movie.douban.com/j/subject_suggest',
     'anime': 'https://movie.douban.com/j/subject_suggest',
     'movie': 'https://movie.douban.com/j/subject_suggest',
     'series': 'https://movie.douban.com/j/subject_suggest',
@@ -34,12 +35,16 @@ MAX_DETAIL_SIZE = 2 * 1024 * 1024
 DETAIL_CACHE_TTL = 60 * 60
 DETAIL_CACHE_LIMIT = 256
 TRENDING_CACHE_TTL = 15 * 60
+MEDIA_CLASSIFICATION_CACHE_TTL = 24 * 60 * 60
+MEDIA_CLASSIFICATION_CACHE_LIMIT = 512
 detail_cache = {}
 detail_cache_lock = Lock()
 detail_fetch_lock = Lock()
 trending_cache = {}
 trending_cache_lock = Lock()
 trending_fetch_lock = Lock()
+media_classification_cache = {}
+media_classification_cache_lock = Lock()
 
 
 class NoRedirectHandler(HTTPRedirectHandler):
@@ -154,6 +159,56 @@ def fetch_trending_item(category, collection):
     }
 
 
+def classify_media_subject(source_id, episode=''):
+    with media_classification_cache_lock:
+        cached = media_classification_cache.get(source_id)
+    if cached and time.monotonic() - cached['createdAt'] < MEDIA_CLASSIFICATION_CACHE_TTL:
+        return cached['category']
+
+    fallback = 'series' if episode else 'movie'
+    detail_url = 'https://m.douban.com/rexxar/api/v2/movie/{}'.format(source_id)
+    referer = 'https://m.douban.com/movie/subject/{}/'.format(source_id)
+    try:
+        with fetch_douban_page(detail_url, referer) as upstream:
+            body = upstream.read(MAX_DETAIL_SIZE + 1)
+            if len(body) > MAX_DETAIL_SIZE:
+                return fallback
+            payload = json.loads(body.decode('utf-8'))
+    except (HTTPError, URLError, TimeoutError, socket.timeout, OSError, HTTPException,
+            ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        return fallback
+    if not isinstance(payload, dict):
+        return fallback
+
+    genres = [as_text(item) for item in payload.get('genres', []) if as_text(item)]
+    try:
+        episodes_count = int(payload.get('episodes_count') or 0)
+    except (TypeError, ValueError):
+        episodes_count = 0
+    if '动画' in genres:
+        category = 'anime'
+    elif (payload.get('is_tv') is True
+          or as_text(payload.get('type')).lower() == 'tv'
+          or as_text(payload.get('subtype')).lower() == 'tv'
+          or episodes_count > 0):
+        category = 'series'
+    else:
+        category = 'movie'
+
+    with media_classification_cache_lock:
+        if len(media_classification_cache) >= MEDIA_CLASSIFICATION_CACHE_LIMIT:
+            oldest_key = min(
+                media_classification_cache,
+                key=lambda key: media_classification_cache[key]['createdAt'],
+            )
+            media_classification_cache.pop(oldest_key, None)
+        media_classification_cache[source_id] = {
+            'createdAt': time.monotonic(),
+            'category': category,
+        }
+    return category
+
+
 @app.route('/')
 def index():
     """
@@ -244,6 +299,24 @@ def search_douban():
     if not isinstance(payload, list):
         return make_err_response('豆瓣搜索返回了无效数据'), 502
 
+    classifications = {}
+    if category != 'book':
+        media_items = [
+            item for item in payload
+            if isinstance(item, dict) and as_text(item.get('id')) and as_text(item.get('title'))
+        ]
+        with ThreadPoolExecutor(max_workers=min(6, max(1, len(media_items)))) as executor:
+            futures = {
+                executor.submit(
+                    classify_media_subject,
+                    as_text(item.get('id')),
+                    as_text(item.get('episode')),
+                ): as_text(item.get('id'))
+                for item in media_items
+            }
+            for future in as_completed(futures):
+                classifications[futures[future]] = future.result()
+
     results = []
     for item in payload:
         if not isinstance(item, dict):
@@ -255,9 +328,12 @@ def search_douban():
         episode = as_text(item.get('episode'))
         if episode.lower() in ('unknow', 'unknown'):
             episode = ''
+        actual_category = category if category == 'book' else classifications.get(source_id, 'movie')
+        if category != 'media' and actual_category != category:
+            continue
         results.append({
             'id': source_id,
-            'category': category,
+            'category': actual_category,
             'title': title,
             'subtitle': as_text(item.get('sub_title')),
             'cover': as_text(item.get('pic') or item.get('img')),
